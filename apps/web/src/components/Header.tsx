@@ -1,5 +1,15 @@
-import React from 'react';
-import { ShieldCheck, Database, Users, PlusCircle, RefreshCw, AlertTriangle } from 'lucide-react';
+import React, { useState } from 'react';
+import {
+  ShieldCheck,
+  Database,
+  Users,
+  PlusCircle,
+  RefreshCw,
+  AlertTriangle,
+  ChevronDown,
+  ChevronUp,
+  HelpCircle,
+} from 'lucide-react';
 import { Workspace, HealthResponse } from '../types/schoolbag';
 
 interface HeaderProps {
@@ -23,6 +33,7 @@ export const Header: React.FC<HeaderProps> = ({
   onRefresh,
   isLoading,
 }) => {
+  const [showWalkthrough, setShowWalkthrough] = useState(false);
   const maxNotices = 50;
   const isNearCapacity = noticeCount >= 40;
   const isFull = noticeCount >= maxNotices;
@@ -31,13 +42,42 @@ export const Header: React.FC<HeaderProps> = ({
     <header style={{ marginBottom: '1.5rem' }}>
       {/* Evaluator Guide Banner */}
       <div className="banner-evaluator">
-        <h3>
-          <ShieldCheck size={18} />
-          Evaluator Quick-Start & Guardrail Checklist (SB-001)
-        </h3>
-        <p>
-          <strong>Workflow Pipeline:</strong> Intake (Message/Circular/Email) &rarr; Action Extraction &rarr; Child Context &rarr; Fingerprint Deduplication &rarr; Deadline Normalization (IST) &rarr; Reminder Draft &rarr; <strong>Human Authority Gate (HTTP 403 for AI/Assistant, Parent Authorization Required)</strong> &rarr; Completion.
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '0.5rem' }}>
+          <h3>
+            <ShieldCheck size={18} />
+            Evaluator Quick-Start & Guardrail Checklist (SB-001 & SB-002)
+          </h3>
+          <button
+            onClick={() => setShowWalkthrough(!showWalkthrough)}
+            className="btn btn-secondary"
+            style={{ fontSize: '0.75rem', padding: '0.2rem 0.5rem', background: '#334155', color: '#f8fafc', border: '1px solid #475569' }}
+          >
+            <HelpCircle size={13} />
+            <span>{showWalkthrough ? 'Hide 1-Min Tour' : '1-Min Evaluator Walkthrough'}</span>
+            {showWalkthrough ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
+          </button>
+        </div>
+
+        <p style={{ marginTop: '0.25rem' }}>
+          <strong>Workflow Pipeline:</strong> Intake &rarr; Extraction &rarr; Child Context &rarr; Deduplication &rarr; IST Normalization &rarr; Reminder Draft &rarr; <strong>Human Authority Gate (HTTP 403 for AI/Assistant, Parent Authorization Required)</strong> &rarr; Completion.
         </p>
+
+        {showWalkthrough && (
+          <div style={{ marginTop: '0.75rem', padding: '0.75rem', background: '#0f172a', borderRadius: 'var(--radius-sm)', border: '1px solid #334155' }}>
+            <div style={{ fontSize: '0.8rem', fontWeight: 700, color: '#38bdf8', marginBottom: '0.4rem' }}>
+              60-Second Evaluator Verification Sequence:
+            </div>
+            <ol style={{ fontSize: '0.75rem', color: '#cbd5e1', paddingLeft: '1.2rem', display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+              <li>Click <strong>&ldquo;Ingest School Notice&rdquo;</strong> &rarr; select a synthetic preset for <em>Kovai Vidya Mandir, Coimbatore</em>.</li>
+              <li>Observe extracted actions: <strong>Fee Payment</strong> (₹350), <strong>Consent Slip</strong> (Field Trip), and <strong>Materials</strong> (chart paper).</li>
+              <li>Click <strong>&ldquo;Simulate Assistant Approval (Expect 403)&rdquo;</strong> &rarr; verify the red HTTP 403 rejection banner enforcing the Human Authority Gate.</li>
+              <li>Click <strong>&ldquo;Parent Sign &amp; Authorize&rdquo;</strong> &rarr; notice the action updates to <em>Parent Authorized</em> with actor timestamp.</li>
+              <li>Click <strong>&ldquo;Mark Completed&rdquo;</strong> to finalize the task.</li>
+              <li>Inspect the <strong>Audit Event Log</strong> column on the right for transparent, immutable lifecycle tracking.</li>
+            </ol>
+          </div>
+        )}
+
         <div style={{ display: 'flex', gap: '1rem', marginTop: '0.5rem', flexWrap: 'wrap', fontSize: '0.75rem', color: '#94a3b8' }}>
           <span>&bull; Personal Spend: <strong>₹0.00 / $0.00</strong> (Deterministic Synthetic Engine)</span>
           <span>&bull; Privacy: <strong>Minimal Identifiers</strong> (Alias only; zero DOB, medical, or student ID stored)</span>
@@ -53,7 +93,7 @@ export const Header: React.FC<HeaderProps> = ({
               Schoolbag
             </h1>
             <span style={{ fontSize: '0.8rem', padding: '0.15rem 0.5rem', background: 'var(--bg-elevated)', borderRadius: '4px', color: 'var(--text-muted)' }}>
-              v0.1.0 (Tamil Nadu Demo)
+              v0.2.0 (Tamil Nadu Demo)
             </span>
           </div>
           <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
@@ -114,7 +154,7 @@ export const Header: React.FC<HeaderProps> = ({
       </div>
 
       {/* Child Filter Tabs */}
-      <div style={{ display: 'flex', gap: '0.5rem', marginTop: '1rem', alignItems: 'center' }}>
+      <div style={{ display: 'flex', gap: '0.5rem', marginTop: '1rem', alignItems: 'center', flexWrap: 'wrap' }}>
         <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
           <Users size={14} /> Filter by Child:
         </span>

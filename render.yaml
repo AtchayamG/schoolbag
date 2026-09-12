@@ -1,0 +1,19 @@
+services:
+  - type: web
+    name: schoolbag
+    env: docker
+    dockerfilePath: ./Dockerfile
+    plan: free
+    region: oregon
+    healthCheckPath: /api/health
+    envVars:
+      - key: ENVIRONMENT
+        value: production
+      - key: PORT
+        value: 8000
+      - key: SCHOOLBAG_STATIC_DIR
+        value: /app/static
+      - key: DATABASE_URL
+        sync: false
+      - key: SCHOOLBAG_CORS_ORIGINS
+        value: "https://schoolbag.onrender.com,http://localhost:5173,http://localhost:8000"

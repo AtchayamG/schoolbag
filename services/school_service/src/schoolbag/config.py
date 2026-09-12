@@ -29,12 +29,23 @@ class SchoolbagSettings(BaseSettings):
         extra="ignore",
     )
 
-    environment: str = Field(default="development", description="Runtime environment")
+    environment: str = Field(
+        default_factory=lambda: os.environ.get(
+            "SCHOOLBAG_ENVIRONMENT", os.environ.get("ENVIRONMENT", "development")
+        ),
+        description="Runtime environment",
+    )
     database_url: str = Field(
-        default="sqlite:///schoolbag.db", description="Database connection URL"
+        default_factory=lambda: os.environ.get(
+            "SCHOOLBAG_DATABASE_URL", os.environ.get("DATABASE_URL", "sqlite:///schoolbag.db")
+        ),
+        description="Database connection URL",
     )
     cors_origins: str = Field(
-        default="http://localhost:5174,http://127.0.0.1:5174",
+        default_factory=lambda: os.environ.get(
+            "SCHOOLBAG_CORS_ORIGINS",
+            os.environ.get("CORS_ORIGINS", "http://localhost:5174,http://127.0.0.1:5174"),
+        ),
         description="Allowed CORS origins (comma-separated or JSON list)",
     )
     static_dir: str = Field(

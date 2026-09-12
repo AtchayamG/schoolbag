@@ -59,7 +59,11 @@ def validate_production_request(
             if origin_clean not in allowed_origins and origin not in allowed_origins:
                 raise OriginRefusedError(f"Origin '{origin}' is not permitted by security policy.")
 
-    # Require session cookie in production
+    # Entry point for session bootstrapping (POST /api/workspaces) issues the session cookie
+    if request.url.path == "/api/workspaces" and request.method == "POST":
+        return
+
+    # Require session cookie in production for other requests
     token = resolve_session_token(request)
     if not token:
         raise SessionExpiredError("Session cookie missing or expired in production environment.")

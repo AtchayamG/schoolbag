@@ -40,12 +40,20 @@ class SecurityMiddleware(BaseHTTPMiddleware):
         try:
             validate_production_request(request, allowed_origins, settings.environment)
         except SchoolbagDomainError as exc:
-            return JSONResponse(
+            error_res = JSONResponse(
                 status_code=exc.status_code,
                 content={"error": exc.code, "message": exc.message, "details": exc.details},
             )
+            error_res.headers["X-Content-Type-Options"] = "nosniff"
+            error_res.headers["X-Frame-Options"] = "DENY"
+            error_res.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+            return error_res
 
-        return await call_next(request)  # type: ignore[no-any-return]
+        res = await call_next(request)
+        res.headers["X-Content-Type-Options"] = "nosniff"
+        res.headers["X-Frame-Options"] = "DENY"
+        res.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+        return res  # type: ignore[no-any-return]
 
 
 def create_app(

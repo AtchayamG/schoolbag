@@ -194,7 +194,7 @@ def test_required_vertical_slice(client: TestClient) -> None:
     assert res_malformed.json()["error"] == "VALIDATION_ERROR"
 
     # Unavailable extractor -> HTTP 503
-    with tempfile.TemporaryDirectory() as tmp_dir:
+    with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as tmp_dir:
         tmp_db = f"{tmp_dir}/unavail.db"
         app_unavail = create_app(f"sqlite:///{tmp_db}", extraction_mode="unavailable")
         with TestClient(app_unavail) as unavail_client:

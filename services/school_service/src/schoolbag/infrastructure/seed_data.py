@@ -50,6 +50,21 @@ PRESET_NOTICES: list[dict[str, Any]] = [
         ),
         "raw_due_text": "Next Monday 9 AM",
     },
+    {
+        "preset_id": "preset-sports-day",
+        "label": "Annual Sports Meet & Transport (School Diary)",
+        "source_type": "diary_note",
+        "class_name": "Class 8-A",
+        "child_alias": "Arun",
+        "title": "Annual Sports Meet Registration & Special Bus",
+        "raw_body": (
+            "Dear Parent, Arun has been selected for the 400m relay at the Inter-School "
+            "Athletic Meet at Nehru Stadium. Please pay the special event bus transport fee of ₹200 "
+            "and confirm parental consent by Thursday 3 PM. Student must wear house sports uniform "
+            "and carry a water bottle. — Physical Education Dept, Kovai Vidya Mandir."
+        ),
+        "raw_due_text": "Thursday 3 PM",
+    },
 ]
 
 
