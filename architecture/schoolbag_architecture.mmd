@@ -1,0 +1,69 @@
+graph TD
+    classDef intake fill:#e0f2fe,stroke:#0284c7,stroke-width:2px;
+    classDef extraction fill:#fef3c7,stroke:#d97706,stroke-width:2px;
+    classDef core fill:#f3e8ff,stroke:#7c3aed,stroke-width:2px;
+    classDef gate fill:#fee2e2,stroke:#dc2626,stroke-width:2px;
+    classDef store fill:#ecfdf5,stroke:#059669,stroke-width:2px;
+    classDef client fill:#f8fafc,stroke:#475569,stroke-width:2px;
+
+    subgraph School_Communication_Sources["1. School Communication Sources"]
+        W[WhatsApp Group Forward]:::intake
+        C[School Circular / PDF]:::intake
+        E[School Portal / Email]:::intake
+    end
+
+    subgraph Ingestion_And_Deduplication["2. Ingestion & Content Deduplication"]
+        INTAKE["Intake API (/api/notices)"]:::intake
+        FP["Fingerprint Engine<br/>(SHA-256 Title+Body+Class+Child)"]:::extraction
+        IDEM["Idempotency Record Cache<br/>(Replay Without Duplicates)"]:::extraction
+    end
+
+    subgraph Extraction_Pipeline["3. Advisory Action Extraction Engine"]
+        EXTRACT["Deterministic Action Extractor<br/>(Rule-Based, Zero Paid API Spend)"]:::extraction
+        CONF["Provenance & Confidence Scoring<br/>(advisory_only: true, confidence: 0.95)"]:::extraction
+        NORM["IST Deadline Normalizer<br/>(Calculated Asia/Kolkata +05:30)"]:::extraction
+    end
+
+    subgraph Human_Authority_Gate["4. Human Authority Gate"]
+        GATE{"Authority Check<br/>Actor == 'parent'?"}:::gate
+        REJECT["HTTP 403 Forbidden<br/>(HUMAN_APPROVAL_REQUIRED)"]:::gate
+        APPROVE["Action Authorized<br/>(Parent Signature Recorded)"]:::core
+        COMPLETE["Action Completed<br/>(e.g., UPI Fee Paid / Slip Signed)"]:::core
+    end
+
+    subgraph Advisory_Reminders["5. Advisory Reminders & Calendar Drafts"]
+        REM["Draft Reminder Engine<br/>(Calendar, In-App, Push)"]:::core
+    end
+
+    subgraph Storage_Layer["6. Dual-Engine Storage Architecture"]
+        DB[("Storage Port Adapter<br/>SQLite WAL (Local) | PostgreSQL 16 (Deploy)")]:::store
+        AUDIT[("Append-Only Audit Stream<br/>(Immutable Lifecycle History)")]:::store
+    end
+
+    subgraph Frontend_Workbench["7. Evaluator Workbench (React + Vite)"]
+        UI["React 18 + Vite SPA<br/>Evaluator Checklist | Live 403 Simulation | Presets"]:::client
+    end
+
+    W --> INTAKE
+    C --> INTAKE
+    E --> INTAKE
+    INTAKE --> FP
+    FP --> IDEM
+    IDEM -->|New Notice| EXTRACT
+    IDEM -->|Duplicate| DB
+    EXTRACT --> CONF
+    CONF --> NORM
+    NORM --> DB
+    DB --> GATE
+    GATE -->|Assistant / Bot| REJECT
+    GATE -->|Human Parent| APPROVE
+    APPROVE --> COMPLETE
+    NORM --> REM
+    REM --> DB
+    APPROVE --> AUDIT
+    COMPLETE --> AUDIT
+    REJECT --> AUDIT
+    UI <--> INTAKE
+    UI <--> GATE
+    UI <--> REM
+    UI <--> DB
