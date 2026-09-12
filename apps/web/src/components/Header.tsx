@@ -45,7 +45,7 @@ export const Header: React.FC<HeaderProps> = ({
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '0.5rem' }}>
           <h3>
             <ShieldCheck size={18} />
-            Evaluator Quick-Start & Guardrail Checklist (SB-001 &ndash; SB-004)
+            Evaluator Quick-Start & Guardrail Checklist (SB-001 &ndash; SB-005)
           </h3>
           <button
             onClick={() => setShowWalkthrough(!showWalkthrough)}
@@ -95,7 +95,7 @@ export const Header: React.FC<HeaderProps> = ({
               Schoolbag
             </h1>
             <span style={{ fontSize: '0.8rem', padding: '0.15rem 0.5rem', background: 'var(--bg-elevated)', borderRadius: '4px', color: 'var(--text-muted)' }}>
-              v0.4.0 (Tamil Nadu Demo)
+              v0.5.0 (Tamil Nadu Demo)
             </span>
           </div>
           <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>

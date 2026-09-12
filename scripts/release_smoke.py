@@ -47,7 +47,9 @@ def run_smoke() -> None:
     with TestClient(app) as client:
         # Stage 1: Workspace Session Initialization
         res_ws = client.post("/api/workspaces", json={"name": "Kovai Family Workspace"})
-        assert res_ws.status_code in (200, 201), f"Expected 200/201, got {res_ws.status_code}"
+        assert res_ws.status_code in (200, 201), (
+            f"Expected 200/201, got {res_ws.status_code}"
+        )
         ws_data = res_ws.json()
         assert "schoolbag_session" in client.cookies
         ws_id = ws_data["workspace_id"]
@@ -73,21 +75,35 @@ def run_smoke() -> None:
                 "raw_due_text": "Friday 5 PM",
             },
         )
-        assert res_notice.status_code == 201, f"Expected 201, got {res_notice.status_code}: {res_notice.text}"
+        assert res_notice.status_code == 201, (
+            f"Expected 201, got {res_notice.status_code}: {res_notice.text}"
+        )
         notice_data = res_notice.json()
         notice_id = notice_data["notice"]["notice_id"]
         actions = notice_data["actions"]
         assert len(actions) >= 3
-        stage_ok(2, "Notice Intake & Rule-Based Action Extraction", f"{len(actions)} actions extracted")
+        stage_ok(
+            2,
+            "Notice Intake & Rule-Based Action Extraction",
+            f"{len(actions)} actions extracted",
+        )
 
         # Stage 3: Truthful Category Assignment & Confidence Scores
         fee_act = next((a for a in actions if a["action_type"] == "fee_payment"), None)
-        consent_act = next((a for a in actions if a["action_type"] == "consent_form"), None)
-        material_act = next((a for a in actions if a["action_type"] == "materials_bring"), None)
+        consent_act = next(
+            (a for a in actions if a["action_type"] == "consent_form"), None
+        )
+        material_act = next(
+            (a for a in actions if a["action_type"] == "materials_bring"), None
+        )
         assert fee_act is not None and fee_act["amount_inr"] == 350
         assert consent_act is not None
         assert material_act is not None
-        stage_ok(3, "Action Categorization & Amount Parsing", "Fee ₹350, Consent Slip, Materials")
+        stage_ok(
+            3,
+            "Action Categorization & Amount Parsing",
+            "Fee ₹350, Consent Slip, Materials",
+        )
 
         # Stage 4: Notice Fingerprint Deduplication
         res_dup = client.post(
@@ -102,12 +118,20 @@ def run_smoke() -> None:
         )
         assert res_dup.status_code in (200, 201)
         assert res_dup.json()["is_deduplicated"] is True
-        stage_ok(4, "Notice Fingerprint Deduplication", "Duplicate forward replayed existing actions")
+        stage_ok(
+            4,
+            "Notice Fingerprint Deduplication",
+            "Duplicate forward replayed existing actions",
+        )
 
         # Stage 5: IST Deadline Normalization
         assert fee_act["normalized_deadline"] is not None
         assert "+05:30" in fee_act["normalized_deadline"]
-        stage_ok(5, "Deadline Normalization (IST +05:30)", f"Deadline: {fee_act['normalized_deadline']}")
+        stage_ok(
+            5,
+            "Deadline Normalization (IST +05:30)",
+            f"Deadline: {fee_act['normalized_deadline']}",
+        )
 
         # Stage 6: Update Action Deadline
         action_id = fee_act["action_id"]
@@ -122,7 +146,11 @@ def run_smoke() -> None:
         assert res_dl.status_code == 200
         fee_act = res_dl.json()
         assert fee_act["version"] == 2
-        stage_ok(6, "Action Deadline Patch & Audit Log", f"Updated to {fee_act['normalized_deadline']}")
+        stage_ok(
+            6,
+            "Action Deadline Patch & Audit Log",
+            f"Updated to {fee_act['normalized_deadline']}",
+        )
 
         # Stage 7: Draft Reminder Creation
         res_rem = client.post(
@@ -139,7 +167,9 @@ def run_smoke() -> None:
         rem_data = res_rem.json()
         assert rem_data["channel"] == "calendar"
         assert rem_data["is_draft"] is True
-        stage_ok(7, "Reminder Draft Creation", f"Drafted for {rem_data['scheduled_for']}")
+        stage_ok(
+            7, "Reminder Draft Creation", f"Drafted for {rem_data['scheduled_for']}"
+        )
 
         # Stage 8: Human Authority Gate: AI/Assistant Rejection (HTTP 403)
         res_bad_app = client.post(
@@ -152,7 +182,11 @@ def run_smoke() -> None:
         )
         assert res_bad_app.status_code == 403
         assert res_bad_app.json()["error"] == "HUMAN_APPROVAL_REQUIRED"
-        stage_ok(8, "Human Authority Gate (HTTP 403)", "Blocked non-parent autonomous approval")
+        stage_ok(
+            8,
+            "Human Authority Gate (HTTP 403)",
+            "Blocked non-parent autonomous approval",
+        )
 
         # Stage 9: Parent Authorization (HTTP 200)
         res_good_app = client.post(
@@ -167,12 +201,20 @@ def run_smoke() -> None:
         approved_act = res_good_app.json()
         assert approved_act["status"] == "approved"
         assert approved_act["version"] == 3
-        stage_ok(9, "Parent Authorization Gate", f"Approved, new version v{approved_act['version']}")
+        stage_ok(
+            9,
+            "Parent Authorization Gate",
+            f"Approved, new version v{approved_act['version']}",
+        )
 
         # Stage 10: Action Completion
         res_comp = client.post(
             f"/api/actions/{action_id}/complete",
-            json={"expected_version": 3, "actor_name": "Parent", "actor_type": "parent"},
+            json={
+                "expected_version": 3,
+                "actor_name": "Parent",
+                "actor_type": "parent",
+            },
         )
         assert res_comp.status_code == 200
         assert res_comp.json()["status"] == "completed"
@@ -182,11 +224,17 @@ def run_smoke() -> None:
         # Stage 11: Optimistic Locking Conflict (HTTP 409)
         res_conflict = client.post(
             f"/api/actions/{action_id}/complete",
-            json={"expected_version": 1, "actor_name": "Parent", "actor_type": "parent"},
+            json={
+                "expected_version": 1,
+                "actor_name": "Parent",
+                "actor_type": "parent",
+            },
         )
         assert res_conflict.status_code == 409
         assert res_conflict.json()["error"] == "STATE_CONFLICT"
-        stage_ok(11, "Optimistic Concurrency Conflict", "Rejected stale mutation with 409")
+        stage_ok(
+            11, "Optimistic Concurrency Conflict", "Rejected stale mutation with 409"
+        )
 
         # Stage 12: Notice Capacity Limit (50 Notices Max)
         with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as cap_dir:
@@ -218,7 +266,11 @@ def run_smoke() -> None:
                 )
                 assert res_over.status_code == 409
                 assert res_over.json()["error"] == "CAPACITY_EXCEEDED"
-                stage_ok(12, "Workspace Capacity Limit (50 Max)", "Rejected 51st notice with 409")
+                stage_ok(
+                    12,
+                    "Workspace Capacity Limit (50 Max)",
+                    "Rejected 51st notice with 409",
+                )
 
         # Stage 13: Cross-Workspace Isolation (HTTP 404)
         with TestClient(app) as client_b:
@@ -226,7 +278,11 @@ def run_smoke() -> None:
             res_cross = client_b.get(f"/api/notices/{notice_id}")
             assert res_cross.status_code == 404
             assert res_cross.json()["error"] == "NOTICE_NOT_FOUND"
-            stage_ok(13, "Cross-Workspace Isolation", "Tenant B cannot view Tenant A notice (404)")
+            stage_ok(
+                13,
+                "Cross-Workspace Isolation",
+                "Tenant B cannot view Tenant A notice (404)",
+            )
 
         # Stage 14: Idempotency Key Replay
         with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as id_dir:
@@ -240,20 +296,41 @@ def run_smoke() -> None:
                     "title": "Quarterly Science Fee",
                     "raw_body": "Science fee of Rs 400 due Friday",
                 }
-                res_id1 = id_client.post("/api/notices", json=p_notice, headers={"Idempotency-Key": "idem_1001"})
+                res_id1 = id_client.post(
+                    "/api/notices",
+                    json=p_notice,
+                    headers={"Idempotency-Key": "idem_1001"},
+                )
                 assert res_id1.status_code == 201
-                res_id2 = id_client.post("/api/notices", json=p_notice, headers={"Idempotency-Key": "idem_1001"})
+                res_id2 = id_client.post(
+                    "/api/notices",
+                    json=p_notice,
+                    headers={"Idempotency-Key": "idem_1001"},
+                )
                 assert res_id2.status_code == 201
-                assert res_id1.json()["notice"]["notice_id"] == res_id2.json()["notice"]["notice_id"]
-                stage_ok(14, "Idempotency-Key Replay", "Exact replay cached and returned")
+                assert (
+                    res_id1.json()["notice"]["notice_id"]
+                    == res_id2.json()["notice"]["notice_id"]
+                )
+                stage_ok(
+                    14, "Idempotency-Key Replay", "Exact replay cached and returned"
+                )
 
                 # Stage 15: Idempotency Conflict on Altered Payload
                 p_altered = dict(p_notice)
                 p_altered["title"] = "Quarterly Science Fee ALTERED"
-                res_conf = id_client.post("/api/notices", json=p_altered, headers={"Idempotency-Key": "idem_1001"})
+                res_conf = id_client.post(
+                    "/api/notices",
+                    json=p_altered,
+                    headers={"Idempotency-Key": "idem_1001"},
+                )
                 assert res_conf.status_code == 409
                 assert res_conf.json()["error"] == "IDEMPOTENCY_CONFLICT"
-                stage_ok(15, "Idempotency Conflict Detection", "Altered payload rejected with 409")
+                stage_ok(
+                    15,
+                    "Idempotency Conflict Detection",
+                    "Altered payload rejected with 409",
+                )
 
         # Stage 16: Malformed Payload Validation
         res_malf = client.post("/api/notices", json={"invalid_field": 123})
@@ -263,7 +340,10 @@ def run_smoke() -> None:
 
         # Stage 17: Extractor Unavailable Handling (HTTP 503)
         with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as un_dir:
-            app_unavail = create_app(f"sqlite:///{Path(un_dir) / 'unavail.db'}", extraction_mode="unavailable")
+            app_unavail = create_app(
+                f"sqlite:///{Path(un_dir) / 'unavail.db'}",
+                extraction_mode="unavailable",
+            )
             with TestClient(app_unavail) as un_client:
                 res_unavail = un_client.post(
                     "/api/notices",
@@ -277,7 +357,9 @@ def run_smoke() -> None:
                 )
                 assert res_unavail.status_code == 503
                 assert res_unavail.json()["error"] == "EXTRACTOR_UNAVAILABLE"
-                stage_ok(17, "Extractor Failure Handling", "HTTP 503 EXTRACTOR_UNAVAILABLE")
+                stage_ok(
+                    17, "Extractor Failure Handling", "HTTP 503 EXTRACTOR_UNAVAILABLE"
+                )
 
         # Stage 18: Health and Readiness Probes
         res_health = client.get("/api/health")
@@ -287,7 +369,11 @@ def run_smoke() -> None:
         assert h_json["extractor"]["advisory_only"] is True
         res_ready = client.get("/api/ready")
         assert res_ready.status_code == 200
-        stage_ok(18, "Truthful Health & Readiness Probes", f"Status: {h_json['status']}, DB: {h_json['database']['engine']}")
+        stage_ok(
+            18,
+            "Truthful Health & Readiness Probes",
+            f"Status: {h_json['status']}, DB: {h_json['database']['engine']}",
+        )
 
         # Stage 19: Privacy & Zero Personal Spend Verification
         res_presets = client.get("/api/presets")
@@ -295,11 +381,18 @@ def run_smoke() -> None:
         presets = res_presets.json()
         assert len(presets) >= 2
         for p in presets:
-            assert "kavya" in p["child_alias"].lower() or "arun" in p["child_alias"].lower()
+            assert (
+                "kavya" in p["child_alias"].lower()
+                or "arun" in p["child_alias"].lower()
+            )
             assert "dob" not in p
             assert "medical" not in p
             assert "student_id" not in p
-        stage_ok(19, "Privacy & Zero Personal Spend Guarantee", "Zero paid APIs (₹0.00 spend), minimal child alias only")
+        stage_ok(
+            19,
+            "Privacy & Zero Personal Spend Guarantee",
+            "Zero paid APIs (₹0.00 spend), minimal child alias only",
+        )
 
         # Stage 20: Strands Advisory Loop & Bounded Tool Execution
         res_strands = client.post(
@@ -307,7 +400,9 @@ def run_smoke() -> None:
             json={"expected_version": 1},
             headers={"Idempotency-Key": "smoke_strands_001"},
         )
-        assert res_strands.status_code == 200, f"Expected 200, got {res_strands.status_code}: {res_strands.text}"
+        assert res_strands.status_code == 200, (
+            f"Expected 200, got {res_strands.status_code}: {res_strands.text}"
+        )
         s_data = res_strands.json()
         assert s_data["notice_id"] == notice_id
         assert s_data["summary"]
@@ -347,7 +442,10 @@ def run_smoke() -> None:
         res_ics = client.get(f"/api/actions/{fee_act['action_id']}/calendar.ics")
         assert res_ics.status_code == 200, f"Expected 200, got {res_ics.status_code}"
         assert "text/calendar" in res_ics.headers["content-type"]
-        assert f"schoolbag_action_{fee_act['action_id']}.ics" in res_ics.headers["content-disposition"]
+        assert (
+            f"schoolbag_action_{fee_act['action_id']}.ics"
+            in res_ics.headers["content-disposition"]
+        )
         ics_text = res_ics.text
         assert "BEGIN:VCALENDAR" in ics_text
         assert "VERSION:2.0" in ics_text
@@ -366,7 +464,9 @@ def run_smoke() -> None:
         res_feed = client.get("/api/actions/calendar.ics")
         assert res_feed.status_code == 200, f"Expected 200, got {res_feed.status_code}"
         assert "text/calendar" in res_feed.headers["content-type"]
-        assert "schoolbag_family_schedule.ics" in res_feed.headers["content-disposition"]
+        assert (
+            "schoolbag_family_schedule.ics" in res_feed.headers["content-disposition"]
+        )
         feed_text = res_feed.text
         assert "X-WR-CALNAME:Schoolbag Family Schedule" in feed_text
         assert feed_text.count("BEGIN:VEVENT") >= 1

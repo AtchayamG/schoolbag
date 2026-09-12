@@ -1,10 +1,11 @@
 # Schoolbag Handover & Evaluator Quickstart Guide
 
 ## Project Summary
-- **Task ID**: `SB-004` (Base: `SB-003`)
+- **Task ID**: `SB-005` (Final Production Packaging & Submission)
 - **Product**: Schoolbag (Project 3)
+- **Track**: Everyday Agents (Agents for Humans Hackathon)
 - **Worktree / Directory**: `03_SCHOOLBAG/`
-- **Active Branch**: `worker/agy/SB-004`
+- **Active Branch**: `worker/agy/SB-005`
 - **Total Spend**: **₹0.00 / $0.00** (Zero external paid APIs, deterministic synthetic engine + Groq free tier / offline mock transport)
 - **Zero Secrets**: No API keys or credentials stored in repository
 
@@ -18,6 +19,13 @@ cd services/school_service
 .\.venv\Scripts\python.exe ..\..\scripts\release_smoke.py
 ```
 *Expected Output*: `ALL 22/22 STAGES PASSED SUCCESSFULLY!`
+
+### Run 11-Stage Live Canary Suite
+```bash
+cd 03_SCHOOLBAG
+.\services\school_service\.venv\Scripts\python.exe scripts\live_canary.py
+```
+*Expected Output*: `ALL 11 CANARY STAGES PASSED SUCCESSFULLY!`
 
 ### Run Backend Pytest Suite (37 Tests)
 ```bash
@@ -43,11 +51,11 @@ cmd.exe /c npm run build
 
 ### Run Python Quality Checks
 ```bash
-cd services/school_service
-.\.venv\Scripts\ruff.exe check src tests
-.\.venv\Scripts\ruff.exe format --check src tests
+cd 03_SCHOOLBAG
+.\services\school_service\.venv\Scripts\ruff.exe check services/school_service/src services/school_service/tests scripts
+.\services\school_service\.venv\Scripts\ruff.exe format --check services/school_service/src services/school_service/tests scripts
 ```
-*Expected Output*: All passed with 0 errors across all 34 source files.
+*Expected Output*: All passed with 0 errors across all 37 source files.
 
 ---
 
@@ -67,3 +75,10 @@ Then navigate to `http://localhost:8000` to review:
 6. **WhatsApp Family Draft**: Click "WhatsApp Draft" to copy an instant formatted family reminder to your clipboard.
 7. **Family Weekly Board**: Click "Family Weekly Board (Visual Diary)" tab to view the multi-child side-by-side view (Kavya & Arun), aggregate pending fee totals, family deadline overlap detection, and consolidated `.ics` family calendar feed.
 8. **Truthful Disclosures**: Inspect the footer provenance card disclosing the rule engine, Strands agent seam, and zero-spend declarations.
+
+---
+
+## 3. Submission Documentation
+- **Demo Video Script**: `docs/DEMO_VIDEO_SCRIPT.md` (180-second timed production script with captions and cues).
+- **Devpost Submission**: `docs/DEVPOST_SUBMISSION.md` (Everyday Agents track submission copy).
+- **Milestone Acceptance Records**: `docs/SB-001_ACCEPTANCE.md` through `docs/SB-005_ACCEPTANCE.md`.

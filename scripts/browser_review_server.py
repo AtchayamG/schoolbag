@@ -23,7 +23,9 @@ from schoolbag.interfaces.http.app import create_app
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Schoolbag Browser Review Server")
-    parser.add_argument("--port", type=int, default=8000, help="HTTP port (default: 8000)")
+    parser.add_argument(
+        "--port", type=int, default=8000, help="HTTP port (default: 8000)"
+    )
     parser.add_argument("--host", type=str, default="127.0.0.1", help="Host address")
     parser.add_argument(
         "--db",
@@ -38,7 +40,9 @@ def main() -> None:
     dist_dir = root_dir / "apps" / "web" / "dist"
     if not dist_dir.exists() or not (dist_dir / "index.html").exists():
         print(f"[WARN] Web dist directory not found at {dist_dir}.")
-        print("[INFO] Please run 'npm run build' in apps/web before opening the browser.")
+        print(
+            "[INFO] Please run 'npm run build' in apps/web before opening the browser."
+        )
 
     os.environ["SCHOOLBAG_STATIC_DIR"] = str(dist_dir)
 
@@ -48,7 +52,9 @@ def main() -> None:
     if args.db == "postgres":
         pg_bin = find_pg_bin()
         if not pg_bin:
-            print("[ERROR] PostgreSQL 16 binaries not found in workspace. Reverting to SQLite.")
+            print(
+                "[ERROR] PostgreSQL 16 binaries not found in workspace. Reverting to SQLite."
+            )
             args.db = "sqlite"
         else:
             print("[INFO] Initializing disposable ephemeral PostgreSQL 16 cluster...")
