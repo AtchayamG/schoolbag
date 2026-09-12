@@ -11,6 +11,7 @@ import {
   Bell,
   Edit2,
   CheckCircle2,
+  Share2,
 } from 'lucide-react';
 import { api, ApiError } from '../api/client';
 import { ActionType, SchoolAction } from '../types/schoolbag';
@@ -74,6 +75,8 @@ export const ActionCard: React.FC<ActionCardProps> = ({ action, onActionUpdated 
   const [successBanner, setSuccessBanner] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
+  const [copiedToast, setCopiedToast] = useState(false);
+
   // Normal human-readable deadline
   const displayDeadline = action.normalized_due_date
     ? new Date(action.normalized_due_date).toLocaleString('en-IN', {
@@ -82,6 +85,37 @@ export const ActionCard: React.FC<ActionCardProps> = ({ action, onActionUpdated 
         timeZone: 'Asia/Kolkata',
       }) + ' (IST)'
     : action.due_date || 'No deadline specified';
+
+  // Handle RFC 5545 iCalendar (.ics) download
+  const handleDownloadIcs = () => {
+    const link = document.createElement('a');
+    link.href = `/api/actions/${action.id}/calendar.ics`;
+    link.setAttribute('download', `schoolbag_action_${action.id}.ics`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  // Handle family WhatsApp draft copying
+  const handleCopyWhatsApp = async () => {
+    const amtText = action.amount != null ? `\n💰 Amount: ₹${action.amount} INR` : '';
+    const text =
+      `📌 Schoolbag Reminder (Kovai Vidya Mandir)\n` +
+      `Action: ${action.title}\n` +
+      `Due: ${displayDeadline}${amtText}\n` +
+      `Status: ${action.status === 'approved' ? '✅ Parent Authorized' : '⚠️ Requires Parent Authorization'}\n` +
+      `👉 Open Schoolbag Dashboard to review`;
+    try {
+      if (navigator.clipboard) {
+        await navigator.clipboard.writeText(text);
+      }
+      setCopiedToast(true);
+      setTimeout(() => setCopiedToast(false), 2500);
+    } catch {
+      setCopiedToast(true);
+      setTimeout(() => setCopiedToast(false), 2500);
+    }
+  };
 
   // Handle Assistant Approval simulation (deliberate 403 test)
   const handleSimulateAssistantApproval = async () => {
@@ -268,14 +302,43 @@ export const ActionCard: React.FC<ActionCardProps> = ({ action, onActionUpdated 
 
       {/* Human Gate Action Controls */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '0.75rem', borderTop: '1px solid var(--border-subtle)', flexWrap: 'wrap', gap: '0.5rem' }}>
-        {/* Reminder button */}
-        <button
-          onClick={() => setIsDraftingReminder(!isDraftingReminder)}
-          className="btn btn-secondary"
-          style={{ fontSize: '0.75rem', padding: '0.35rem 0.65rem' }}
-        >
-          <Bell size={13} /> Draft Reminder
-        </button>
+        {/* Fulfillment & Reminder Controls */}
+        <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap', alignItems: 'center' }}>
+          <button
+            onClick={() => setIsDraftingReminder(!isDraftingReminder)}
+            className="btn btn-secondary"
+            style={{ fontSize: '0.75rem', padding: '0.35rem 0.6rem' }}
+          >
+            <Bell size={13} /> Draft Reminder
+          </button>
+
+          <button
+            type="button"
+            onClick={handleDownloadIcs}
+            className="btn btn-secondary"
+            style={{ fontSize: '0.75rem', padding: '0.35rem 0.6rem' }}
+            title="Download RFC 5545 iCalendar (.ics) event for this action"
+          >
+            <Calendar size={13} /> Export .ics
+          </button>
+
+          <button
+            type="button"
+            onClick={handleCopyWhatsApp}
+            className="btn btn-secondary"
+            style={{
+              fontSize: '0.75rem',
+              padding: '0.35rem 0.6rem',
+              color: copiedToast ? '#059669' : undefined,
+              borderColor: copiedToast ? '#a7f3d0' : undefined,
+              background: copiedToast ? '#ecfdf5' : undefined,
+            }}
+            title="Copy pre-formatted WhatsApp reminder draft"
+          >
+            {copiedToast ? <Check size={13} /> : <Share2 size={13} />}
+            <span>{copiedToast ? 'Copied Draft!' : 'WhatsApp Draft'}</span>
+          </button>
+        </div>
 
         {/* State transition buttons */}
         <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>

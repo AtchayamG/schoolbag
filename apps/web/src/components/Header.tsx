@@ -45,7 +45,7 @@ export const Header: React.FC<HeaderProps> = ({
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '0.5rem' }}>
           <h3>
             <ShieldCheck size={18} />
-            Evaluator Quick-Start & Guardrail Checklist (SB-001 &ndash; SB-003)
+            Evaluator Quick-Start & Guardrail Checklist (SB-001 &ndash; SB-004)
           </h3>
           <button
             onClick={() => setShowWalkthrough(!showWalkthrough)}
@@ -59,7 +59,7 @@ export const Header: React.FC<HeaderProps> = ({
         </div>
 
         <p style={{ marginTop: '0.25rem' }}>
-          <strong>Workflow Pipeline:</strong> Intake &rarr; Extraction &rarr; Child Context &rarr; Deduplication &rarr; IST Normalization &rarr; <strong>Strands Agent Advisory Loop (Bounded Read Tool)</strong> &rarr; <strong>Human Authority Gate (HTTP 403 for AI/Assistant, Parent Authorization Required)</strong> &rarr; Completion.
+          <strong>Workflow Pipeline:</strong> Intake &rarr; Extraction &rarr; Child Context &rarr; Deduplication &rarr; IST Normalization &rarr; <strong>Strands Advisory Loop</strong> &rarr; <strong>Human Authority Gate</strong> &rarr; <strong>iCalendar .ics / WhatsApp Draft</strong> &rarr; Completion.
         </p>
 
         {showWalkthrough && (
@@ -73,8 +73,9 @@ export const Header: React.FC<HeaderProps> = ({
               <li>Observe extracted actions: <strong>Fee Payment</strong> (₹350), <strong>Consent Slip</strong> (Field Trip), and <strong>Materials</strong> (chart paper).</li>
               <li>Click <strong>&ldquo;Simulate Assistant Approval (Expect 403)&rdquo;</strong> &rarr; verify the red HTTP 403 rejection banner enforcing the Human Authority Gate.</li>
               <li>Click <strong>&ldquo;Parent Sign &amp; Authorize&rdquo;</strong> &rarr; notice the action updates to <em>Parent Authorized</em> with actor timestamp.</li>
+              <li>Click <strong>&ldquo;Export .ics&rdquo;</strong> on an action or switch to <strong>&ldquo;Family Weekly Board&rdquo;</strong> to export full family schedule.</li>
+              <li>Click <strong>&ldquo;WhatsApp Draft&rdquo;</strong> to copy formatted parent reminder directly to clipboard.</li>
               <li>Click <strong>&ldquo;Mark Completed&rdquo;</strong> to finalize the task.</li>
-              <li>Inspect the <strong>Audit Event Log</strong> column on the right for transparent, immutable lifecycle tracking.</li>
             </ol>
           </div>
         )}
@@ -94,7 +95,7 @@ export const Header: React.FC<HeaderProps> = ({
               Schoolbag
             </h1>
             <span style={{ fontSize: '0.8rem', padding: '0.15rem 0.5rem', background: 'var(--bg-elevated)', borderRadius: '4px', color: 'var(--text-muted)' }}>
-              v0.3.0 (Tamil Nadu Demo)
+              v0.4.0 (Tamil Nadu Demo)
             </span>
           </div>
           <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>

@@ -1,10 +1,10 @@
-﻿# Task Status: SB-001, SB-002, & SB-003 (Schoolbag)
+# Task Status: SB-001, SB-002, SB-003 & SB-004 (Schoolbag)
 
 - **Status**: COMPLETE & VERIFIED
 - **Worker**: AGY (Senior Full-Stack Developer)
 - **Model**: Gemini 3.8 Flash High
-- **Active Branch**: `worker/agy/SB-003`
-- **Base Branch**: `worker/agy/SB-002` (Commit `77750c5`)
+- **Active Branch**: `worker/agy/SB-004`
+- **Base Branch**: `worker/agy/SB-003` (Commit `30d27ca`)
 - **Repository**: `03_SCHOOLBAG/`
 
 ---
@@ -13,7 +13,7 @@
 
 | Requirement | Implementation | Status |
 | :--- | :--- | :--- |
-| **Isolated worktree** | Initialized at `03_SCHOOLBAG/` on `worker/agy/SB-001`, progressed through `SB-002` to `worker/agy/SB-003` | **DONE** |
+| **Isolated worktree** | Initialized at `03_SCHOOLBAG/` on `worker/agy/SB-001`, progressed through `SB-002`, `SB-003` to `worker/agy/SB-004` | **DONE** |
 | **No edits to other projects** | `01_BORROWED_STEPS`, `02_BENCHBOOK`, `00_PROGRAM_CONTROL` untouched | **DONE** |
 | **Zero personal spend** | $0.00 / ₹0.00 spend; deterministic extractor + Groq free-tier / mock transport adapter; zero paid cloud APIs | **DONE** |
 | **Synthetic public data** | Kovai Vidya Mandir, Coimbatore presets (Kavya Class 5-B, Arun Class 8-A) | **DONE** |
@@ -33,21 +33,24 @@
 | **Inference Admission Control** | Atomic single-active concurrency lock, sliding window rate limits (6/60s, 120/24h), 15m 429 cooldown | **DONE** |
 | **Zero-Send Idempotent Replay** | Identical request hashes return cached output with zero extra model sends | **DONE** |
 | **Groq Model Adapter** | Sticky 6-send maximum budget, 15s deadline timeout, HTTPS target enforcement, mock transport support | **DONE** |
-| **Frontend Strands UI** | "Analyze with Strands AI" trigger button, advisory card, urgent/standard badges, mandatory human approval notices | **DONE** |
-| **Backend test suite** | 34/34 pytest tests passing (including 12 Strands tests & ephemeral PG 16) | **DONE** |
-| **Frontend test suite** | 8/8 Vitest unit & workflow tests passing | **DONE** |
+| **RFC 5545 iCalendar Export** | `calendar.py` producing universal `.ics` with UTC timestamps and -2h `VALARM` reminder | **DONE** |
+| **Single & Aggregate Calendar Endpoints** | `GET /api/actions/{action_id}/calendar.ics` and `GET /api/actions/calendar.ics` | **DONE** |
+| **WhatsApp Coordination Draft** | Instant pre-formatted family reminder copy with clipboard feedback toast | **DONE** |
+| **Family Weekly Board** | Multi-child column grouping (`Kavya` & `Arun`), pending fee totals, and cross-child deadline overlap detection | **DONE** |
+| **Frontend View Switcher** | Tab toggle between Feed & Action View and Family Weekly Board (Visual Diary) | **DONE** |
+| **Backend test suite** | 37/37 pytest tests passing (including calendar export & ephemeral PG 16) | **DONE** |
+| **Frontend test suite** | 10/10 Vitest unit & workflow tests passing | **DONE** |
 | **Frontend build** | `tsc && vite build` bundled to `dist/` with 0 warnings/errors | **DONE** |
-| **Release smoke test** | 20-stage end-to-end smoke verification passing (20/20) | **DONE** |
-| **Code hygiene** | `ruff check`, `ruff format --check`, `mypy` all clean with 0 errors across 32 files | **DONE** |
+| **Release smoke test** | 22-stage end-to-end smoke verification passing (22/22) | **DONE** |
+| **Code hygiene** | `ruff check`, `ruff format --check` all clean with 0 errors across 34 files | **DONE** |
 
 ---
 
 ## 2. Verification Summary
-- `pytest`: 34 passed in 15.40s
-- `vitest`: 8 passed in 2.28s
+- `pytest`: 37 passed in 16.51s
+- `vitest`: 10 passed in 2.45s
 - `eslint`: 0 warnings, 0 errors
 - `tsc`: 0 errors
 - `ruff check`: All checks passed
-- `ruff format --check`: 32 files already formatted
-- `mypy`: Success: no issues found in 22 source files
-- `release_smoke.py`: ALL 20/20 STAGES PASSED SUCCESSFULLY
+- `ruff format --check`: 34 files already formatted
+- `release_smoke.py`: ALL 22/22 STAGES PASSED SUCCESSFULLY

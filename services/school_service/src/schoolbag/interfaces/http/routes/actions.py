@@ -2,12 +2,16 @@
 
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, Header, Request
+from fastapi import APIRouter, Depends, Header, Request, Response
 
 from schoolbag.domain.errors import ActionNotFoundError, ValidationError
 from schoolbag.domain.models import Workspace
 from schoolbag.domain.ports import SchoolbagStorePort
 from schoolbag.domain.workflow import canonical_payload_hash
+from schoolbag.infrastructure.calendar import (
+    generate_action_ics,
+    generate_workspace_calendar_ics,
+)
 from schoolbag.infrastructure.normalizer import normalize_deadline
 from schoolbag.interfaces.http.routes.session import get_current_workspace
 from schoolbag.interfaces.http.schemas import (
@@ -45,6 +49,28 @@ def list_actions(
     return [ActionResponse(**a.to_dict()) for a in actions]
 
 
+@router.get("/calendar.ics")
+def export_workspace_calendar(
+    request: Request,
+    ws: Workspace = Depends(get_current_workspace),
+) -> Response:
+    """Export all actions in workspace as an aggregate RFC 5545 iCalendar feed."""
+    store: SchoolbagStorePort = request.app.state.store
+    actions = store.list_actions(ws.workspace_id)
+    notices = store.list_notices(ws.workspace_id)
+    notices_by_id = {n.notice_id: n for n in notices}
+
+    ics_content = generate_workspace_calendar_ics(actions=actions, notices_by_id=notices_by_id)
+    return Response(
+        content=ics_content,
+        media_type="text/calendar; charset=utf-8",
+        headers={
+            "Content-Disposition": 'attachment; filename="schoolbag_family_schedule.ics"',
+            "Cache-Control": "no-cache",
+        },
+    )
+
+
 @router.get("/{action_id}", response_model=ActionResponse)
 def get_action(
     action_id: str,
@@ -57,6 +83,30 @@ def get_action(
     if not action:
         raise ActionNotFoundError(action_id)
     return ActionResponse(**action.to_dict())
+
+
+@router.get("/{action_id}/calendar.ics")
+def export_action_calendar(
+    action_id: str,
+    request: Request,
+    ws: Workspace = Depends(get_current_workspace),
+) -> Response:
+    """Export single action as RFC 5545 iCalendar (.ics) event stream."""
+    store: SchoolbagStorePort = request.app.state.store
+    action = store.get_action(ws.workspace_id, action_id)
+    if not action:
+        raise ActionNotFoundError(action_id)
+
+    notice = store.get_notice(ws.workspace_id, action.notice_id)
+    ics_content = generate_action_ics(action=action, notice=notice)
+    return Response(
+        content=ics_content,
+        media_type="text/calendar; charset=utf-8",
+        headers={
+            "Content-Disposition": f'attachment; filename="schoolbag_action_{action_id}.ics"',
+            "Cache-Control": "no-cache",
+        },
+    )
 
 
 @router.patch("/{action_id}/deadline", response_model=ActionResponse)

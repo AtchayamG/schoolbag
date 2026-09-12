@@ -5,6 +5,7 @@ import { ActionCard } from '../components/ActionCard';
 import { NoticeCard } from '../components/NoticeCard';
 import { ProvenanceCard } from '../components/ProvenanceCard';
 import { AuditEventStream } from '../components/AuditEventStream';
+import { FamilyWeeklyBoard } from '../components/FamilyWeeklyBoard';
 import { SchoolAction, Notice, HealthResponse, AuditEvent } from '../types/schoolbag';
 import * as clientModule from '../api/client';
 
@@ -274,4 +275,136 @@ describe('Schoolbag Frontend Core Workflow & Guardrails', () => {
       expect(screen.getByText(/Model inference quota or concurrent active limit reached/i)).toBeInTheDocument();
     });
   });
+
+  it('renders .ics export button and WhatsApp draft copy button on action card', async () => {
+    const mockAction: SchoolAction = {
+      id: 'act_fee_303',
+      notice_id: 'not_1',
+      workspace_id: 'ws_test',
+      action_type: 'fee_payment',
+      title: 'Pay Annual Day Costume Fee',
+      description: 'Submit costume fee to class teacher',
+      category: 'fees',
+      due_date: 'Friday 5 PM',
+      normalized_due_date: '2026-09-18T17:00:00+05:30',
+      amount: 350,
+      currency: 'INR',
+      status: 'draft',
+      required_role: 'parent',
+      approved_by: null,
+      approved_at: null,
+      approval_notes: null,
+      version: 1,
+      created_at: '2026-09-14T09:00:00Z',
+      updated_at: '2026-09-14T09:00:00Z',
+    };
+
+    Object.assign(navigator, {
+      clipboard: {
+        writeText: vi.fn().mockResolvedValue(undefined),
+      },
+    });
+
+    render(<ActionCard action={mockAction} onActionUpdated={vi.fn()} />);
+
+    expect(screen.getByText(/Export .ics/i)).toBeInTheDocument();
+    const whatsappBtn = screen.getByText(/WhatsApp Draft/i);
+    expect(whatsappBtn).toBeInTheDocument();
+
+    fireEvent.click(whatsappBtn);
+
+    await waitFor(() => {
+      expect(screen.getByText(/Copied Draft!/i)).toBeInTheDocument();
+    });
+  });
+
+  it('renders Family Weekly Board with multi-child columns, pending fee total, and overlap alert', () => {
+    const mockNotices: Notice[] = [
+      {
+        id: 'not_kavya_1',
+        workspace_id: 'ws_test',
+        title: 'Kavya Excursion Notice',
+        raw_content: 'Annual excursion fee Rs 350 due on Friday.',
+        source_type: 'circular',
+        class_name: 'Class 5-B',
+        child_alias: 'Kavya',
+        fingerprint: 'fp_k1',
+        created_at: '2026-09-14T09:00:00Z',
+      },
+      {
+        id: 'not_arun_1',
+        workspace_id: 'ws_test',
+        title: 'Arun Sports Day Notice',
+        raw_content: 'Sports day transport fee Rs 200 due on Friday.',
+        source_type: 'circular',
+        class_name: 'Class 8-A',
+        child_alias: 'Arun',
+        fingerprint: 'fp_a1',
+        created_at: '2026-09-14T09:00:00Z',
+      },
+    ];
+
+    const mockActions: SchoolAction[] = [
+      {
+        id: 'act_k1',
+        notice_id: 'not_kavya_1',
+        workspace_id: 'ws_test',
+        action_type: 'fee_payment',
+        title: 'Pay Annual Day Fee',
+        description: 'Excursion payment',
+        category: 'fees',
+        due_date: '2026-09-18T17:00:00+05:30',
+        normalized_due_date: '2026-09-18T17:00:00+05:30',
+        amount: 350,
+        currency: 'INR',
+        status: 'draft',
+        required_role: 'parent',
+        approved_by: null,
+        approved_at: null,
+        approval_notes: null,
+        version: 1,
+        created_at: '2026-09-14T09:00:00Z',
+        updated_at: '2026-09-14T09:00:00Z',
+      },
+      {
+        id: 'act_a1',
+        notice_id: 'not_arun_1',
+        workspace_id: 'ws_test',
+        action_type: 'fee_payment',
+        title: 'Pay Sports Transport Fee',
+        description: 'Transport fee',
+        category: 'fees',
+        due_date: '2026-09-18T12:00:00+05:30',
+        normalized_due_date: '2026-09-18T12:00:00+05:30',
+        amount: 200,
+        currency: 'INR',
+        status: 'draft',
+        required_role: 'parent',
+        approved_by: null,
+        approved_at: null,
+        approval_notes: null,
+        version: 1,
+        created_at: '2026-09-14T09:00:00Z',
+        updated_at: '2026-09-14T09:00:00Z',
+      },
+    ];
+
+    render(
+      <FamilyWeeklyBoard
+        actions={mockActions}
+        notices={mockNotices}
+        onActionUpdated={vi.fn()}
+      />
+    );
+
+    expect(screen.getByText(/Family Weekly Board \(Visual School Diary\)/i)).toBeInTheDocument();
+    expect(screen.getByText(/Pending Fees: ₹550 INR/i)).toBeInTheDocument();
+    expect(screen.getByText(/Export Family Calendar \(\.ics\)/i)).toBeInTheDocument();
+    expect(screen.getByText(/Family Deadline Overlap Detected/i)).toBeInTheDocument();
+    expect(screen.getByText('Class 5-B')).toBeInTheDocument();
+    expect(screen.getByText('Class 8-A')).toBeInTheDocument();
+    expect(screen.getByText('Pay Annual Day Fee')).toBeInTheDocument();
+    expect(screen.getByText('Pay Sports Transport Fee')).toBeInTheDocument();
+  });
 });
+

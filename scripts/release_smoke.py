@@ -26,17 +26,17 @@ if hasattr(sys.stdout, "reconfigure"):
 
 def run_smoke() -> None:
     print("=" * 75)
-    print("  SCHOOLBAG (SB-001 - SB-003) - 20-STAGE END-TO-END RELEASE SMOKE SUITE")
+    print("  SCHOOLBAG (SB-001 - SB-004) - 22-STAGE END-TO-END RELEASE SMOKE SUITE")
     print("=" * 75)
 
     stages_passed = 0
-    total_stages = 20
+    total_stages = 22
 
     def stage_ok(stage_num: int, title: str, details: str = "") -> None:
         nonlocal stages_passed
         stages_passed += 1
         detail_str = f" - {details}" if details else ""
-        print(f"  [STAGE {stage_num:02d}/20] PASS: {title}{detail_str}")
+        print(f"  [STAGE {stage_num:02d}/22] PASS: {title}{detail_str}")
 
     tmp_dir = tempfile.TemporaryDirectory(ignore_cleanup_errors=True)
     db_path = Path(tmp_dir.name) / "smoke_schoolbag.db"
@@ -341,6 +341,39 @@ def run_smoke() -> None:
             20,
             "Strands Agent Advisory Loop & Bounded Read Tool",
             "Grounded against get_school_notice_context with mandatory human approval & idempotency",
+        )
+
+        # Stage 21: Action RFC 5545 iCalendar (.ics) Export
+        res_ics = client.get(f"/api/actions/{fee_act['action_id']}/calendar.ics")
+        assert res_ics.status_code == 200, f"Expected 200, got {res_ics.status_code}"
+        assert "text/calendar" in res_ics.headers["content-type"]
+        assert f"schoolbag_action_{fee_act['action_id']}.ics" in res_ics.headers["content-disposition"]
+        ics_text = res_ics.text
+        assert "BEGIN:VCALENDAR" in ics_text
+        assert "VERSION:2.0" in ics_text
+        assert "BEGIN:VEVENT" in ics_text
+        assert "VALARM" in ics_text
+        assert "TRIGGER:-PT2H" in ics_text
+        assert "END:VEVENT" in ics_text
+        assert "END:VCALENDAR" in ics_text
+        stage_ok(
+            21,
+            "Action RFC 5545 iCalendar (.ics) Export",
+            "Valid VCALENDAR/VEVENT with -2h alarm reminder trigger and UTC format",
+        )
+
+        # Stage 22: Workspace Aggregate Family iCalendar (.ics) Feed
+        res_feed = client.get("/api/actions/calendar.ics")
+        assert res_feed.status_code == 200, f"Expected 200, got {res_feed.status_code}"
+        assert "text/calendar" in res_feed.headers["content-type"]
+        assert "schoolbag_family_schedule.ics" in res_feed.headers["content-disposition"]
+        feed_text = res_feed.text
+        assert "X-WR-CALNAME:Schoolbag Family Schedule" in feed_text
+        assert feed_text.count("BEGIN:VEVENT") >= 1
+        stage_ok(
+            22,
+            "Workspace Aggregate Family Calendar Feed (.ics)",
+            f"Multi-child schedule export ({feed_text.count('BEGIN:VEVENT')} events in VCALENDAR)",
         )
 
     print("=" * 75)

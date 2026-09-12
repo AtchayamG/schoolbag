@@ -6,6 +6,7 @@ import { ActionList } from './components/ActionList';
 import { AuditEventStream } from './components/AuditEventStream';
 import { NoticeIntakeModal } from './components/NoticeIntakeModal';
 import { ProvenanceCard } from './components/ProvenanceCard';
+import { FamilyWeeklyBoard } from './components/FamilyWeeklyBoard';
 import {
   AuditEvent,
   HealthResponse,
@@ -26,6 +27,7 @@ export const App: React.FC = () => {
   const [selectedChild, setSelectedChild] = useState<string | null>(null);
   const [isIntakeOpen, setIsIntakeOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [viewMode, setViewMode] = useState<'feed' | 'board'>('feed');
 
   // Initialize or load workspace
   const initWorkspace = useCallback(async () => {
@@ -104,24 +106,65 @@ export const App: React.FC = () => {
         isLoading={isLoading}
       />
 
-      <main className="grid-layout">
-        {/* Left Column: Notice Feed */}
-        <NoticeList
-          notices={notices}
-          selectedNotice={selectedNotice}
-          onSelectNotice={(n) => setSelectedNotice(n)}
-        />
+      {/* View Switcher Tabs */}
+      <div
+        style={{
+          display: 'flex',
+          gap: '0.5rem',
+          marginTop: '1rem',
+          marginBottom: '1rem',
+          borderBottom: '1px solid var(--border-subtle)',
+          paddingBottom: '0.6rem',
+        }}
+      >
+        <button
+          type="button"
+          className={`btn ${viewMode === 'feed' ? 'btn-primary' : 'btn-outline'}`}
+          onClick={() => setViewMode('feed')}
+          style={{ fontSize: '0.85rem' }}
+          data-testid="tab-feed-view"
+        >
+          Feed & Action View
+        </button>
+        <button
+          type="button"
+          className={`btn ${viewMode === 'board' ? 'btn-primary' : 'btn-outline'}`}
+          onClick={() => setViewMode('board')}
+          style={{ fontSize: '0.85rem' }}
+          data-testid="tab-board-view"
+        >
+          Family Weekly Board (Visual Diary)
+        </button>
+      </div>
 
-        {/* Center Column: Actions */}
-        <ActionList
-          actions={actions}
-          onActionUpdated={loadData}
-          filterChildName={selectedChild}
-        />
+      {viewMode === 'feed' ? (
+        <main className="grid-layout">
+          {/* Left Column: Notice Feed */}
+          <NoticeList
+            notices={notices}
+            selectedNotice={selectedNotice}
+            onSelectNotice={(n) => setSelectedNotice(n)}
+          />
 
-        {/* Right Column: Audit Log */}
-        <AuditEventStream events={auditEvents} />
-      </main>
+          {/* Center Column: Actions */}
+          <ActionList
+            actions={actions}
+            onActionUpdated={loadData}
+            filterChildName={selectedChild}
+          />
+
+          {/* Right Column: Audit Log */}
+          <AuditEventStream events={auditEvents} />
+        </main>
+      ) : (
+        <main style={{ marginTop: '0.5rem', marginBottom: '1.5rem' }}>
+          <FamilyWeeklyBoard
+            actions={actions}
+            notices={notices}
+            onActionUpdated={loadData}
+          />
+        </main>
+      )}
 
       {/* Footer Provenance and Security Disclosures */}
       <ProvenanceCard health={health} />
