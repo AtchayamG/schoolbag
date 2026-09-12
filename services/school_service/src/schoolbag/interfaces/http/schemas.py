@@ -155,3 +155,29 @@ class NoticeCreatedResponse(BaseModel):
     notice: NoticeResponse
     actions: list[ActionResponse]
     is_deduplicated: bool = False
+
+
+class StrandsAdvisoryRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    expected_version: int = Field(..., description="Expected notice version for optimistic locking")
+    idempotency_key: str | None = Field(None, description="Optional idempotency key")
+
+
+class SuggestedActionSchema(BaseModel):
+    category: str
+    title: str
+    description: str
+    deadline_hint: str | None = None
+    amount_inr: float | None = None
+    approval_required: bool = False
+
+
+class StrandsAdvisoryResponseSchema(BaseModel):
+    notice_id: str
+    source_version: int
+    summary: str
+    suggested_actions: list[SuggestedActionSchema]
+    is_urgent: bool
+    advisory_notes: str
+    provenance: dict[str, Any]

@@ -185,3 +185,67 @@ class ValidationError(SchoolbagDomainError):
             status_code=422,
             details=details or {},
         )
+
+
+class AssistantBusyError(SchoolbagDomainError):
+    """Raised when inference rate limits, active concurrency, or provider 429 occurs."""
+
+    def __init__(
+        self,
+        message: str = "Assistant is currently busy. Please retry later.",
+        details: dict[str, Any] | None = None,
+    ) -> None:
+        super().__init__(
+            message=message,
+            code="ASSISTANT_BUSY",
+            status_code=429,
+            details=details or {},
+        )
+
+
+class AssistantUnavailableError(SchoolbagDomainError):
+    """Raised when model provider is unreachable or misconfigured."""
+
+    def __init__(
+        self,
+        message: str = "Assistant is temporarily unavailable.",
+        details: dict[str, Any] | None = None,
+    ) -> None:
+        super().__init__(
+            message=message,
+            code="ASSISTANT_UNAVAILABLE",
+            status_code=503,
+            details=details or {},
+        )
+
+
+class AssistantTimeoutError(SchoolbagDomainError):
+    """Raised when model request or agent loop expires."""
+
+    def __init__(
+        self,
+        message: str = "Assistant request timed out.",
+        details: dict[str, Any] | None = None,
+    ) -> None:
+        super().__init__(
+            message=message,
+            code="ASSISTANT_TIMEOUT",
+            status_code=504,
+            details=details or {},
+        )
+
+
+class AssistantInvalidOutputError(SchoolbagDomainError):
+    """Raised when model hallucinations or schema extraction failures occur."""
+
+    def __init__(
+        self,
+        message: str = "Assistant generated invalid or ungrounded output.",
+        details: dict[str, Any] | None = None,
+    ) -> None:
+        super().__init__(
+            message=message,
+            code="ASSISTANT_INVALID_OUTPUT",
+            status_code=502,
+            details=details or {},
+        )

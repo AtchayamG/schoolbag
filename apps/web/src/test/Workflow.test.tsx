@@ -149,7 +149,7 @@ describe('Schoolbag Frontend Core Workflow & Guardrails', () => {
     expect(screen.getByText(/Autonomous approval attempt blocked/i)).toBeInTheDocument();
   });
 
-  it('renders provenance card with truthful disclosures', () => {
+  it('renders provenance card with truthful disclosures and Strands agent seam', () => {
     const health: HealthResponse = {
       status: 'ok',
       app: 'Schoolbag',
@@ -157,6 +157,11 @@ describe('Schoolbag Frontend Core Workflow & Guardrails', () => {
       milestone: 'M1',
       extractor: {
         mode: 'deterministic',
+        status: 'operational',
+        advisory_only: true,
+      },
+      strands: {
+        engine: 'strands',
         status: 'operational',
         advisory_only: true,
       },
@@ -169,7 +174,104 @@ describe('Schoolbag Frontend Core Workflow & Guardrails', () => {
     render(<ProvenanceCard health={health} />);
 
     expect(screen.getByText(/Truthful Provenance & Safety Declarations/i)).toBeInTheDocument();
+    expect(screen.getByText(/Strands Agent Engine/i)).toBeInTheDocument();
+    expect(screen.getByText(/get_school_notice_context/i)).toBeInTheDocument();
     expect(screen.getByText(/Kovai Vidya Mandir, Coimbatore, TN/i)).toBeInTheDocument();
     expect(screen.getByText(/₹0.00 \/ \$0.00/i)).toBeInTheDocument();
+  });
+
+  it('triggers Strands AI analysis on notice card and renders advisory drafts with human gate notice', async () => {
+    const mockNotice: Notice = {
+      id: 'not_sports_99',
+      notice_id: 'not_sports_99',
+      workspace_id: 'ws_test',
+      title: 'Annual Sports Day & Bus Transport Notice',
+      raw_content: 'Annual Sports Meet on Friday. Transport fee is Rs 200. Parent consent mandatory.',
+      source_type: 'circular',
+      class_name: 'Class 8-A',
+      child_alias: 'Arun',
+      fingerprint: 'fp_sports_99',
+      version: 1,
+      created_at: '2026-09-14T09:00:00Z',
+    };
+
+    vi.spyOn(clientModule.api, 'analyzeNoticeStrands').mockResolvedValueOnce({
+      notice_id: 'not_sports_99',
+      source_version: 1,
+      summary: 'Annual Sports Day requiring transport fee payment and signed parent consent.',
+      is_urgent: true,
+      advisory_notes: 'Both actions strictly require parental approval before execution.',
+      suggested_actions: [
+        {
+          category: 'fees',
+          title: 'Pay Sports Transport Fee',
+          description: 'Submit Rs 200 for bus transport to sports ground',
+          deadline_hint: 'Friday 9 AM',
+          amount_inr: 200,
+          approval_required: true,
+        },
+        {
+          category: 'consent',
+          title: 'Sign Sports Day Participation Form',
+          description: 'Parent consent slip for student athletic events',
+          deadline_hint: 'Thursday 4 PM',
+          amount_inr: null,
+          approval_required: true,
+        },
+      ],
+      provenance: {
+        engine: 'strands',
+        model: 'openai/gpt-oss-20b',
+        grounded_against_tool: true,
+        tool_calls_observed: 1,
+      },
+    });
+
+    render(<NoticeCard notice={mockNotice} isSelected={false} onSelect={vi.fn()} />);
+
+    const analyzeBtn = screen.getByRole('button', { name: /Analyze with Strands AI/i });
+    expect(analyzeBtn).toBeInTheDocument();
+
+    fireEvent.click(analyzeBtn);
+
+    await waitFor(() => {
+      expect(screen.getByText(/Strands Advisory \(openai\/gpt-oss-20b\)/i)).toBeInTheDocument();
+      expect(screen.getByText(/Urgent Priority/i)).toBeInTheDocument();
+      expect(screen.getByText('Pay Sports Transport Fee')).toBeInTheDocument();
+      expect(screen.getByText(/₹200 INR/i)).toBeInTheDocument();
+      expect(screen.getByText('Sign Sports Day Participation Form')).toBeInTheDocument();
+      expect(screen.getAllByText(/Advisory Draft - Requires Human Parent Approval/i).length).toBe(2);
+      expect(screen.getByText(/Bounded Tool:/i)).toHaveTextContent('get_school_notice_context');
+    });
+  });
+
+  it('handles Strands AI rate limiting error 429 ASSISTANT_BUSY with warning banner', async () => {
+    const mockNotice: Notice = {
+      id: 'not_busy_12',
+      workspace_id: 'ws_test',
+      title: 'Exhibition Reminder',
+      raw_content: 'Exhibition on Monday.',
+      source_type: 'whatsapp',
+      fingerprint: 'fp_busy',
+      created_at: '2026-09-14T09:00:00Z',
+    };
+
+    vi.spyOn(clientModule.api, 'analyzeNoticeStrands').mockRejectedValueOnce(
+      new clientModule.ApiError(
+        'ASSISTANT_BUSY',
+        'Model inference quota or concurrent active limit reached. Please wait 15 minutes.',
+        429
+      )
+    );
+
+    render(<NoticeCard notice={mockNotice} isSelected={false} onSelect={vi.fn()} />);
+
+    const analyzeBtn = screen.getByRole('button', { name: /Analyze with Strands AI/i });
+    fireEvent.click(analyzeBtn);
+
+    await waitFor(() => {
+      expect(screen.getByText(/HTTP 429 - ASSISTANT_BUSY/i)).toBeInTheDocument();
+      expect(screen.getByText(/Model inference quota or concurrent active limit reached/i)).toBeInTheDocument();
+    });
   });
 });

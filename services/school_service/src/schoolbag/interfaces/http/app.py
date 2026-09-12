@@ -7,6 +7,7 @@ from collections.abc import Callable
 from pathlib import Path
 from typing import Any
 
+import httpx
 from fastapi import FastAPI, Request, status
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
@@ -16,9 +17,11 @@ from starlette.responses import Response
 
 from schoolbag.config import get_settings
 from schoolbag.domain.errors import SchoolbagDomainError
+from schoolbag.infrastructure.admission import InferenceAdmissionStore
 from schoolbag.infrastructure.extractor import DeterministicActionExtractor
 from schoolbag.infrastructure.session import validate_production_request
 from schoolbag.infrastructure.sqlite_store import SqliteSchoolbagStore
+from schoolbag.infrastructure.strands_agent import StrandsAdvisoryEngine
 from schoolbag.interfaces.http.routes.actions import router as actions_router
 from schoolbag.interfaces.http.routes.notices import router as notices_router
 from schoolbag.interfaces.http.routes.reminders import router as reminders_router
@@ -60,6 +63,9 @@ def create_app(
     db_url: str | None = None,
     extraction_mode: str | None = None,
     raw_conn_factory: Callable[[], Any] | None = None,
+    admission_store: InferenceAdmissionStore | None = None,
+    strands_engine: StrandsAdvisoryEngine | None = None,
+    transport: httpx.AsyncBaseTransport | None = None,
 ) -> FastAPI:
     """Create and configure the Schoolbag FastAPI application."""
     settings = get_settings()
@@ -89,6 +95,17 @@ def create_app(
     app.state.extractor = DeterministicActionExtractor(mode=target_mode)
     app.state.extraction_mode = target_mode
     app.state.is_production = settings.is_production
+
+    # Initialize admission store and Strands advisory engine
+    app.state.admission_store = admission_store or InferenceAdmissionStore(
+        target_db if is_postgres else f"sqlite:///{clean_db_path}"
+    )
+    app.state.strands_engine = strands_engine or StrandsAdvisoryEngine(
+        admission_store=app.state.admission_store,
+        api_key=os.environ.get("GROQ_API_KEY"),
+        transport=transport,
+        mode=target_mode,
+    )
 
     # Middlewares
     app.add_middleware(
@@ -139,6 +156,11 @@ def create_app(
                 "milestone": "M1",
                 "extractor": {
                     "mode": app.state.extraction_mode,
+                    "status": "operational",
+                    "advisory_only": True,
+                },
+                "strands": {
+                    "engine": "strands",
                     "status": "operational",
                     "advisory_only": True,
                 },

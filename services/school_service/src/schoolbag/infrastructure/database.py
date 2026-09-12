@@ -3,6 +3,9 @@
 from __future__ import annotations
 
 import re
+import sqlite3
+from collections.abc import Generator
+from contextlib import contextmanager, suppress
 from typing import Any
 
 
@@ -13,9 +16,13 @@ class ConnectionWrapper:
         self.raw_conn = raw_conn
         self.is_postgres = is_postgres
 
-    def cursor(self) -> Any:
+    def cursor(self) -> CursorWrapper:
         raw_cur = self.raw_conn.cursor()
         return CursorWrapper(raw_cur, self.is_postgres)
+
+    def execute(self, sql: str, params: tuple[Any, ...] | list[Any] | None = None) -> CursorWrapper:
+        cur = self.cursor()
+        return cur.execute(sql, params)
 
     def commit(self) -> None:
         self.raw_conn.commit()
@@ -179,11 +186,40 @@ CREATE TABLE IF NOT EXISTS idempotency_records (
     PRIMARY KEY (workspace_id, idempotency_key)
 );
 
+CREATE TABLE IF NOT EXISTS inference_admissions (
+    reservation_id TEXT PRIMARY KEY,
+    workspace_id TEXT NOT NULL,
+    owner_id TEXT NOT NULL,
+    request_key_hash TEXT NOT NULL,
+    payload_hash TEXT NOT NULL,
+    reserved_sends INTEGER NOT NULL DEFAULT 6,
+    deadline_at TEXT NOT NULL,
+    state TEXT NOT NULL DEFAULT 'RESERVED',
+    is_active INTEGER NOT NULL DEFAULT 1,
+    created_at TEXT NOT NULL,
+    dispatched_at TEXT,
+    completed_at TEXT,
+    released_at TEXT,
+    actual_sends INTEGER,
+    actual_total_tokens INTEGER,
+    cleanup_completed INTEGER,
+    failure_code TEXT,
+    recovery_operator_id TEXT,
+    recovery_reason TEXT,
+    recovered_at TEXT,
+    response_body TEXT
+);
+
 CREATE INDEX IF NOT EXISTS idx_notices_ws_fp ON notices(workspace_id, source_fingerprint);
 CREATE INDEX IF NOT EXISTS idx_actions_ws_notice ON actions(workspace_id, notice_id);
 CREATE INDEX IF NOT EXISTS idx_reminders_ws_action ON reminder_drafts(workspace_id, action_id);
 CREATE INDEX IF NOT EXISTS idx_audit_ws_entity ON audit_events(workspace_id, entity_id);
 CREATE INDEX IF NOT EXISTS idx_workspaces_token ON workspaces(session_token);
+CREATE INDEX IF NOT EXISTS idx_admissions_workspace_key ON inference_admissions(workspace_id, request_key_hash);
+CREATE INDEX IF NOT EXISTS idx_admissions_cooldown ON inference_admissions(failure_code, completed_at);
+CREATE INDEX IF NOT EXISTS idx_admissions_created ON inference_admissions(created_at);
+CREATE INDEX IF NOT EXISTS idx_admissions_active ON inference_admissions(is_active);
+CREATE UNIQUE INDEX IF NOT EXISTS ux_inference_admissions_single_active ON inference_admissions(is_active) WHERE is_active = 1;
 """
 
 
@@ -202,3 +238,47 @@ def init_db(raw_conn: Any, is_postgres: bool = False) -> None:
         # SQLite executes entire script
         raw_conn.executescript(SQLITE_SCHEMA)
         raw_conn.commit()
+
+
+@contextmanager
+def get_db_connection(
+    db_target: str, write: bool = False
+) -> Generator[ConnectionWrapper, None, None]:
+    """Provide a transactional scope around SQLite or PostgreSQL operations."""
+    if db_target.startswith(("postgresql://", "postgres://")):
+        norm_url = db_target
+        if norm_url.startswith("postgres://"):
+            norm_url = "postgresql://" + norm_url[len("postgres://") :]
+        import psycopg
+        from psycopg.rows import dict_row
+
+        pg_conn = psycopg.connect(norm_url, row_factory=dict_row, connect_timeout=10)
+        try:
+            with pg_conn.transaction():
+                yield ConnectionWrapper(pg_conn, is_postgres=True)
+        finally:
+            pg_conn.close()
+    else:
+        db_path = db_target.replace("sqlite:///", "")
+        sqlite_conn = sqlite3.connect(db_path, timeout=15.0, isolation_level=None)
+        sqlite_conn.row_factory = sqlite3.Row
+        sqlite_conn.execute("PRAGMA foreign_keys = ON;")
+        if write:
+            try:
+                if not sqlite_conn.in_transaction:
+                    sqlite_conn.execute("BEGIN IMMEDIATE;")
+                yield ConnectionWrapper(sqlite_conn, is_postgres=False)
+                if sqlite_conn.in_transaction:
+                    sqlite_conn.execute("COMMIT;")
+            except Exception:
+                with suppress(Exception):
+                    if sqlite_conn.in_transaction:
+                        sqlite_conn.execute("ROLLBACK;")
+                raise
+            finally:
+                sqlite_conn.close()
+        else:
+            try:
+                yield ConnectionWrapper(sqlite_conn, is_postgres=False)
+            finally:
+                sqlite_conn.close()

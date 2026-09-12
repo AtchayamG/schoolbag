@@ -12,11 +12,18 @@ export const ProvenanceCard: React.FC<ProvenanceCardProps> = ({ health }) => {
         <Shield size={16} /> Truthful Provenance & Safety Declarations
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '0.75rem', fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '0.75rem', fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
         <div>
           <div style={{ fontWeight: 600, color: 'var(--text-primary)' }}>Extraction Engine</div>
           <div>Mode: <code>{health?.extractor.mode || 'deterministic'}</code> (Rule-based)</div>
           <div>Advisory Only: <code>true</code> (No autosigning)</div>
+        </div>
+
+        <div>
+          <div style={{ fontWeight: 600, color: 'var(--text-primary)' }}>Strands Agent Engine</div>
+          <div>Seam: <code>strands-agents</code> (Advisory)</div>
+          <div>Bounded Tool: <code>get_school_notice_context</code></div>
+          <div>Admission: Atomic lock, 6/60s rate limit</div>
         </div>
 
         <div>

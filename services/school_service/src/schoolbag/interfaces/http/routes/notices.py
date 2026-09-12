@@ -16,6 +16,7 @@ from schoolbag.domain.workflow import (
 )
 from schoolbag.infrastructure.normalizer import normalize_deadline
 from schoolbag.infrastructure.seed_data import PRESET_NOTICES
+from schoolbag.infrastructure.strands_agent import StrandsAdvisoryEngine
 from schoolbag.interfaces.http.routes.session import get_current_workspace
 from schoolbag.interfaces.http.schemas import (
     ActionResponse,
@@ -25,6 +26,8 @@ from schoolbag.interfaces.http.schemas import (
     NoticeCreatedResponse,
     NoticeResponse,
     ReminderResponse,
+    StrandsAdvisoryRequest,
+    StrandsAdvisoryResponseSchema,
 )
 
 router = APIRouter(tags=["Notices"])
@@ -181,3 +184,35 @@ def get_notice_details(
 def get_presets() -> list[dict[str, Any]]:
     """Return synthetic public school notice presets with Tamil Nadu context."""
     return PRESET_NOTICES
+
+
+@router.post(
+    "/api/notices/{notice_id}/analyze-strands",
+    response_model=StrandsAdvisoryResponseSchema,
+)
+async def analyze_notice_strands(
+    notice_id: str,
+    req: StrandsAdvisoryRequest,
+    request: Request,
+    idempotency_header: str | None = Header(None, alias="Idempotency-Key"),
+    ws: Workspace = Depends(get_current_workspace),
+) -> Any:
+    """Analyze notice with Strands Advisory Agent, executing bounded read tool with admission control."""
+    store: SchoolbagStorePort = request.app.state.store
+    strands_engine: StrandsAdvisoryEngine = request.app.state.strands_engine
+
+    idempotency_key = _resolve_idempotency_key(idempotency_header, req.idempotency_key)
+
+    aggregate = store.get_notice_aggregate(ws.workspace_id, notice_id)
+    if not aggregate:
+        raise NoticeNotFoundError(notice_id)
+
+    response = await strands_engine.generate_advice(
+        workspace_id=ws.workspace_id,
+        notice=aggregate.notice,
+        actions=aggregate.actions,
+        expected_version=req.expected_version,
+        idempotency_key=idempotency_key,
+    )
+
+    return response

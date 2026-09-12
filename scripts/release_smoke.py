@@ -17,6 +17,7 @@ sys.path.insert(0, str(root_dir / "services" / "school_service" / "tests"))
 
 from fastapi.testclient import TestClient
 from schoolbag.interfaces.http.app import create_app
+from test_strands_advisory import DUMMY_KEY, _make_mock_transport
 
 # Ensure UTF-8 output on Windows consoles
 if hasattr(sys.stdout, "reconfigure"):
@@ -25,21 +26,23 @@ if hasattr(sys.stdout, "reconfigure"):
 
 def run_smoke() -> None:
     print("=" * 75)
-    print("  SCHOOLBAG (SB-001) - 19-STAGE END-TO-END RELEASE SMOKE SUITE")
+    print("  SCHOOLBAG (SB-001 - SB-003) - 20-STAGE END-TO-END RELEASE SMOKE SUITE")
     print("=" * 75)
 
     stages_passed = 0
-    total_stages = 19
+    total_stages = 20
 
     def stage_ok(stage_num: int, title: str, details: str = "") -> None:
         nonlocal stages_passed
         stages_passed += 1
         detail_str = f" - {details}" if details else ""
-        print(f"  [STAGE {stage_num:02d}/19] PASS: {title}{detail_str}")
+        print(f"  [STAGE {stage_num:02d}/20] PASS: {title}{detail_str}")
 
     tmp_dir = tempfile.TemporaryDirectory(ignore_cleanup_errors=True)
     db_path = Path(tmp_dir.name) / "smoke_schoolbag.db"
-    app = create_app(f"sqlite:///{db_path}")
+    mock_transport = _make_mock_transport()
+    app = create_app(f"sqlite:///{db_path}", transport=mock_transport)
+    app.state.strands_engine._api_key = DUMMY_KEY
 
     with TestClient(app) as client:
         # Stage 1: Workspace Session Initialization
@@ -297,6 +300,48 @@ def run_smoke() -> None:
             assert "medical" not in p
             assert "student_id" not in p
         stage_ok(19, "Privacy & Zero Personal Spend Guarantee", "Zero paid APIs (₹0.00 spend), minimal child alias only")
+
+        # Stage 20: Strands Advisory Loop & Bounded Tool Execution
+        res_strands = client.post(
+            f"/api/notices/{notice_id}/analyze-strands",
+            json={"expected_version": 1},
+            headers={"Idempotency-Key": "smoke_strands_001"},
+        )
+        assert res_strands.status_code == 200, f"Expected 200, got {res_strands.status_code}: {res_strands.text}"
+        s_data = res_strands.json()
+        assert s_data["notice_id"] == notice_id
+        assert s_data["summary"]
+        assert len(s_data["suggested_actions"]) >= 1
+        assert s_data["provenance"]["engine"] == "strands"
+        assert s_data["provenance"]["model"] == "openai/gpt-oss-20b"
+        assert s_data["provenance"]["grounded_against_tool"] is True
+        assert s_data["provenance"]["tool_calls_observed"] >= 1
+        for act in s_data["suggested_actions"]:
+            if act["category"] in ("fees", "consent") or act["amount_inr"]:
+                assert act["approval_required"] is True
+
+        # Verify idempotent replay
+        res_strands_replay = client.post(
+            f"/api/notices/{notice_id}/analyze-strands",
+            json={"expected_version": 1},
+            headers={"Idempotency-Key": "smoke_strands_001"},
+        )
+        assert res_strands_replay.status_code == 200
+        assert res_strands_replay.json()["provenance"]["cached"] is True
+
+        # Verify version conflict check
+        res_strands_conflict = client.post(
+            f"/api/notices/{notice_id}/analyze-strands",
+            json={"expected_version": 999},
+        )
+        assert res_strands_conflict.status_code == 409
+        assert res_strands_conflict.json()["error"] == "STATE_CONFLICT"
+
+        stage_ok(
+            20,
+            "Strands Agent Advisory Loop & Bounded Read Tool",
+            "Grounded against get_school_notice_context with mandatory human approval & idempotency",
+        )
 
     print("=" * 75)
     print(f"  ALL {stages_passed}/{total_stages} STAGES PASSED SUCCESSFULLY!")
