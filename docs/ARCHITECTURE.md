@@ -1,71 +1,146 @@
-# Schoolbag Architecture & System Design
+# Schoolbag Architecture & System Design (v0.5.0)
 
 ## 1. Product Vision
 
 **Schoolbag** is an agentic assistant for families designed to turn chaotic school communication (WhatsApp forward chains, school circular PDFs, diary notes, and portal emails) into the few actionable items a family actually needs to do:
-- Fee payments
-- Consent slips & field trip permissions
-- Required classroom materials & supplies
-- Exam and academic milestones
+- 💳 Fee payments (with exact amounts in ₹ INR)
+- 📝 Consent slips & field trip permissions
+- 📦 Required classroom materials & supplies
+- 🎓 Exam and academic milestones
+- 📅 Device calendar integration (RFC 5545 `.ics`)
+- 💬 Pre-formatted family WhatsApp reminder coordination
+- 📖 Multi-child Family Weekly Board (visual school diary)
 
-Schoolbag enforces strict boundaries: it **never** signs consent, spends money, or dispatches external communications automatically. Every suggested reminder, payment, or consent action is visibly a **DRAFT** requiring human parent approval.
+Schoolbag enforces strict boundaries: it **never** signs consent, spends money, or dispatches external communications automatically. Every suggested reminder, payment, or consent action is visibly an **ADVISORY DRAFT** requiring human parent approval.
 
 ---
 
 ## 2. Core Architectural Principles & Boundaries
 
-1. **Zero Personal Spend (\$0.00 / ₹0.00)**:
+1. **Zero Personal Spend ($0.00 / ₹0.00)**:
    - Uses a deterministic rule-based extractor with confidence scoring and explicit synthetic disclosure.
-   - Requires zero paid external API subscriptions or cloud keys.
+   - Includes a Strands Agent advisory seam using the open-source `openai/gpt-oss-20b` model via Groq's free tier and offline mock transports.
+   - Strictly ₹0.00 spend across all tools, services, and tests.
 
 2. **Strict Human Authority Gate (HTTP 403)**:
    - Automated agents, background assistants, and bots are strictly blocked from approving actions requiring parent authorization (`HUMAN_APPROVAL_REQUIRED`, HTTP 403).
-   - Only actors authenticated with role `parent` can authorize payments or sign consent slips.
+   - Only authenticated human parents can authorize payments or sign consent slips.
 
-3. **Privacy-Preserving Minimal Identifiers**:
-   - Stores only child aliases (e.g., `Kavya`, `Arun`) and class/section identifiers (e.g., `Class 5-B`).
-   - Strictly refuses to store or require student IDs, dates of birth (DOB), medical records, home addresses, or parent Aadhaar/PAN details.
+3. **Single Bounded Read Tool**:
+   - The Strands Agent interacts strictly through `get_school_notice_context`. The model has zero capability to mutate database records, execute financial transactions, or perform arbitrary network calls.
+   - Hallucinations or completions generated without observed execution of the tool are rejected with HTTP 502 `ASSISTANT_INVALID_OUTPUT`.
 
-4. **Multi-Tenant Workspace Isolation**:
-   - Every user receives a secure 32-byte session token mapped to an isolated workspace.
-   - Cross-workspace data access returns HTTP 404 `NOTICE_NOT_FOUND` / `NOT_FOUND`.
-   - Workspaces enforce a hard capacity limit of 50 notices per workspace (HTTP 409 `CAPACITY_EXCEEDED`).
+4. **Atomic Inference Admission Safety**:
+   - Concurrency Lock: Strictly 1 active inference request permitted per workspace (HTTP 429 `ASSISTANT_BUSY`).
+   - Sliding Rate Limits: Max 6 req/60s, 120 req/24h, 24 completions/24h.
+   - Provider 429 Cooldown: 15-minute lock on admissions after provider rate-limit signals.
+   - Zero-Send Idempotent Replay: Cached response returned with 0 extra model calls.
 
-5. **Deterministic IST Deadline Normalization**:
-   - Dates and relative phrases ("Friday 5 PM", "Tomorrow 10 AM", "Urgent today", "Next Thursday") are deterministically normalized into Indian Standard Time (+05:30) ISO-8601 timestamps.
+5. **Privacy-Preserving Minimal Identifiers & PII Redaction**:
+   - Pre-inference regex scrubber strips phone numbers, emails, student registration IDs, Aadhaar numbers, and dates of birth.
+   - Stores only child aliases (`Kavya`, `Arun`) and class/section identifiers (`Class 5-B`, `Class 8-A`).
 
-6. **Dual-Engine Storage Architecture**:
+6. **Household Interoperability**:
+   - RFC 5545 iCalendar export (`.ics`) with UTC converted timestamps (`Z` format), `X-WR-TIMEZONE:Asia/Kolkata`, and -2h `VALARM` reminder alerts.
+   - Instant WhatsApp reminder draft copy with clipboard confirmation.
+   - Consolidated Family Weekly Board grouping obligations by child and detecting concurrent deadline conflicts.
+
+7. **Dual-Engine Storage Architecture**:
    - Thread-safe storage layer supporting SQLite WAL for instant zero-dependency local development and ephemeral PostgreSQL 16 for production containerized workloads.
 
 ---
 
-## 3. Workflow Pipeline
+## 3. End-to-End System Architecture Diagram
 
-```
-[Raw Notice Intake]
-         │
-         ▼
-[SHA-256 Fingerprint Deduplication]
-    ├── If Duplicate ──> [Replay Existing Actions (200 OK)]
-    └── If New Notice
-         │
-         ▼
-[Action Extraction Engine]
-  - Categorization (Fees, Consent, Materials, Exams)
-  - Provenance & Confidence Scoring (advisory_only: true)
-  - Deadline Normalization (IST +05:30)
-         │
-         ▼
-[Draft Reminder Creation]
-  - Calendar / In-App / Email / Push
-         │
-         ▼
-[Human Authority Gate]
-    ├── If Assistant / Bot ──> [HTTP 403 HUMAN_APPROVAL_REQUIRED]
-    └── If Parent ────────────> [HTTP 200 OK -> Approved]
-                                        │
-                                        ▼
-                                 [Mark Completed]
+```mermaid
+graph TD
+    classDef intake fill:#e0f2fe,stroke:#0284c7,stroke-width:2px;
+    classDef extraction fill:#fef3c7,stroke:#d97706,stroke-width:2px;
+    classDef ai fill:#dbeafe,stroke:#1d4ed8,stroke-width:2px;
+    classDef gate fill:#fee2e2,stroke:#dc2626,stroke-width:2px;
+    classDef core fill:#f3e8ff,stroke:#7c3aed,stroke-width:2px;
+    classDef store fill:#ecfdf5,stroke:#059669,stroke-width:2px;
+    classDef client fill:#f8fafc,stroke:#475569,stroke-width:2px;
+
+    subgraph Sources["1. School Communication Sources"]
+        W["WhatsApp Group Forwards"]:::intake
+        C["School Circulars / PDFs"]:::intake
+        E["School Portal / Emails"]:::intake
+    end
+
+    subgraph Intake_Dedup["2. Ingestion & Content Deduplication"]
+        INTAKE["Intake API (/api/notices)"]:::intake
+        FP["Fingerprint Engine (SHA-256)"]:::extraction
+        IDEM["Idempotency Cache"]:::extraction
+    end
+
+    subgraph Extractor["3. Deterministic Extraction Engine"]
+        EXTRACT["Rule-Based Action Extractor"]:::extraction
+        NORM["IST Deadline Normalizer (+05:30)"]:::extraction
+    end
+
+    subgraph Strands_AI["4. Strands Agent Advisory Loop"]
+        RED["PII Scrubber (Phone, Email, Aadhaar, DOB)"]:::ai
+        ADM["Inference Admission Store (1-Active Lock)"]:::ai
+        STRANDS["Strands Advisory Engine"]:::ai
+        TOOL["Bounded Read Tool: get_school_notice_context"]:::ai
+    end
+
+    subgraph Human_Gate["5. Domain Human Authority Gate"]
+        GATE{"Authority Check: Actor == 'parent'?"}:::gate
+        REJECT["HTTP 403 Forbidden (HUMAN_APPROVAL_REQUIRED)"]:::gate
+        APPROVE["Parent Authorized (Signature Recorded)"]:::core
+        COMPLETE["Action Completed (UPI Paid / Slip Signed)"]:::core
+    end
+
+    subgraph Interop["6. Household Interoperability"]
+        ICS["RFC 5545 iCalendar (.ics with -2h VALARM)"]:::core
+        WA["WhatsApp Pre-Formatted Reminder Draft"]:::core
+        BOARD["Family Weekly Board (Overlap Detection)"]:::core
+    end
+
+    subgraph Storage["7. Storage Layer"]
+        DB[("Storage Port Adapter: SQLite WAL | PostgreSQL 16")]:::store
+        AUDIT[("Append-Only Audit Event Stream")]:::store
+    end
+
+    subgraph Frontend["8. Evaluator Workbench"]
+        UI["React 18 + Vite SPA"]:::client
+    end
+
+    W --> INTAKE
+    C --> INTAKE
+    E --> INTAKE
+    INTAKE --> FP
+    FP --> IDEM
+    IDEM --> EXTRACT
+    EXTRACT --> NORM
+    NORM --> DB
+
+    INTAKE -.->|Analyze Request| RED
+    RED --> ADM
+    ADM --> STRANDS
+    STRANDS <--> TOOL
+    STRANDS -->|Advisory Drafts| DB
+
+    DB --> GATE
+    GATE -->|Assistant / Bot| REJECT
+    GATE -->|Human Parent| APPROVE
+    APPROVE --> COMPLETE
+
+    APPROVE --> AUDIT
+    REJECT --> AUDIT
+    COMPLETE --> AUDIT
+
+    DB --> ICS
+    DB --> WA
+    DB --> BOARD
+
+    UI <--> INTAKE
+    UI <--> GATE
+    UI <--> BOARD
+    UI <--> ICS
+    UI <--> WA
 ```
 
 ---

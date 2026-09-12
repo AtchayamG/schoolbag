@@ -1,47 +1,59 @@
 graph TD
     classDef intake fill:#e0f2fe,stroke:#0284c7,stroke-width:2px;
     classDef extraction fill:#fef3c7,stroke:#d97706,stroke-width:2px;
-    classDef core fill:#f3e8ff,stroke:#7c3aed,stroke-width:2px;
+    classDef ai fill:#dbeafe,stroke:#1d4ed8,stroke-width:2px;
     classDef gate fill:#fee2e2,stroke:#dc2626,stroke-width:2px;
+    classDef core fill:#f3e8ff,stroke:#7c3aed,stroke-width:2px;
     classDef store fill:#ecfdf5,stroke:#059669,stroke-width:2px;
     classDef client fill:#f8fafc,stroke:#475569,stroke-width:2px;
 
     subgraph School_Communication_Sources["1. School Communication Sources"]
-        W[WhatsApp Group Forward]:::intake
-        C[School Circular / PDF]:::intake
-        E[School Portal / Email]:::intake
+        W["WhatsApp Group Forwards (Class 5-B / 8-A)"]:::intake
+        C["School Circulars / PDF Excursion Slips"]:::intake
+        E["School Portal / Email Notices"]:::intake
     end
 
-    subgraph Ingestion_And_Deduplication["2. Ingestion & Content Deduplication"]
+    subgraph Ingestion_And_Deduplication["2. Ingestion & Deduplication Pipeline"]
         INTAKE["Intake API (/api/notices)"]:::intake
-        FP["Fingerprint Engine<br/>(SHA-256 Title+Body+Class+Child)"]:::extraction
-        IDEM["Idempotency Record Cache<br/>(Replay Without Duplicates)"]:::extraction
+        FP["Fingerprint Engine (SHA-256 Title+Body+Class+Child)"]:::extraction
+        IDEM["Idempotency Record Cache (Zero-Send Replay)"]:::extraction
     end
 
-    subgraph Extraction_Pipeline["3. Advisory Action Extraction Engine"]
-        EXTRACT["Deterministic Action Extractor<br/>(Rule-Based, Zero Paid API Spend)"]:::extraction
-        CONF["Provenance & Confidence Scoring<br/>(advisory_only: true, confidence: 0.95)"]:::extraction
-        NORM["IST Deadline Normalizer<br/>(Calculated Asia/Kolkata +05:30)"]:::extraction
+    subgraph Deterministic_Extraction["3. Deterministic Extraction Engine"]
+        EXTRACT["Rule-Based Action Extractor (Zero Spend ₹0.00)"]:::extraction
+        CONF["Provenance & Confidence Scoring"]:::extraction
+        NORM["IST Deadline Normalizer (Asia/Kolkata +05:30)"]:::extraction
     end
 
-    subgraph Human_Authority_Gate["4. Human Authority Gate"]
-        GATE{"Authority Check<br/>Actor == 'parent'?"}:::gate
-        REJECT["HTTP 403 Forbidden<br/>(HUMAN_APPROVAL_REQUIRED)"]:::gate
-        APPROVE["Action Authorized<br/>(Parent Signature Recorded)"]:::core
-        COMPLETE["Action Completed<br/>(e.g., UPI Fee Paid / Slip Signed)"]:::core
+    subgraph Strands_Advisory_System["4. Strands Agent Advisory Loop (Safe Seam)"]
+        RED["Pre-Inference PII Scrubber (Phone, Email, Aadhaar, DOB)"]:::ai
+        ADM["Inference Admission Store (1-Active Lock, Sliding Rate Limits, 429 Backoff)"]:::ai
+        STRANDS["Strands Agent Engine (strands-agents 1.54.0)"]:::ai
+        TOOL["Single Bounded Read Tool: get_school_notice_context"]:::ai
+        GROUND["Observed Tool Grounding (actual_tools >= 1)"]:::ai
+        MODEL["Groq Model Adapter (openai/gpt-oss-20b Free Tier)"]:::ai
     end
 
-    subgraph Advisory_Reminders["5. Advisory Reminders & Calendar Drafts"]
-        REM["Draft Reminder Engine<br/>(Calendar, In-App, Push)"]:::core
+    subgraph Human_Authority_Gate["5. Domain Human Authority Gate"]
+        GATE{"Authority Check: Actor == 'parent'?"}:::gate
+        REJECT["HTTP 403 Forbidden (HUMAN_APPROVAL_REQUIRED)"]:::gate
+        APPROVE["Parent Authorized (Signature Recorded)"]:::core
+        COMPLETE["Action Completed (Fee Paid / Slip Handed In)"]:::core
     end
 
-    subgraph Storage_Layer["6. Dual-Engine Storage Architecture"]
-        DB[("Storage Port Adapter<br/>SQLite WAL (Local) | PostgreSQL 16 (Deploy)")]:::store
-        AUDIT[("Append-Only Audit Stream<br/>(Immutable Lifecycle History)")]:::store
+    subgraph Household_Interoperability["6. Household Interoperability & Coordination"]
+        ICS["RFC 5545 iCalendar Generator (.ics with -2h VALARM)"]:::core
+        WA["WhatsApp Pre-Formatted Reminder Draft (Clipboard Copy)"]:::core
+        BOARD["Family Weekly Board (Visual Diary & Overlap Detection)"]:::core
     end
 
-    subgraph Frontend_Workbench["7. Evaluator Workbench (React + Vite)"]
-        UI["React 18 + Vite SPA<br/>Evaluator Checklist | Live 403 Simulation | Presets"]:::client
+    subgraph Storage_Layer["7. Dual-Engine Storage Architecture"]
+        DB[("Storage Port Adapter: SQLite WAL (Local) | PostgreSQL 16 (Deploy)")]:::store
+        AUDIT[("Append-Only Audit Event Stream (Immutable Trace)")]:::store
+    end
+
+    subgraph Frontend_Workbench["8. Evaluator Workbench (React + Vite)"]
+        UI["React 18 + Vite SPA (Feed View + Family Board Tabs)"]:::client
     end
 
     W --> INTAKE
@@ -50,20 +62,34 @@ graph TD
     INTAKE --> FP
     FP --> IDEM
     IDEM -->|New Notice| EXTRACT
-    IDEM -->|Duplicate| DB
+    IDEM -->|Duplicate Replay| DB
     EXTRACT --> CONF
     CONF --> NORM
     NORM --> DB
+
+    INTAKE -.->|Analyze Request| RED
+    RED --> ADM
+    ADM --> STRANDS
+    STRANDS <--> TOOL
+    STRANDS --> GROUND
+    STRANDS <--> MODEL
+    GROUND -->|Advisory Drafts| DB
+
     DB --> GATE
-    GATE -->|Assistant / Bot| REJECT
+    GATE -->|Assistant / AI Bot| REJECT
     GATE -->|Human Parent| APPROVE
     APPROVE --> COMPLETE
-    NORM --> REM
-    REM --> DB
+
     APPROVE --> AUDIT
-    COMPLETE --> AUDIT
     REJECT --> AUDIT
+    COMPLETE --> AUDIT
+
+    DB --> ICS
+    DB --> WA
+    DB --> BOARD
+
     UI <--> INTAKE
     UI <--> GATE
-    UI <--> REM
-    UI <--> DB
+    UI <--> BOARD
+    UI <--> ICS
+    UI <--> WA
