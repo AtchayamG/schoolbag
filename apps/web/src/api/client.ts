@@ -292,8 +292,9 @@ export const api = {
   getReminders: (): Promise<ReminderDraft[]> => request<ReminderDraft[]>('/api/reminders'),
 
   // Audit
-  getAuditEvents: (entityId?: string): Promise<AuditEvent[]> => {
+  getAuditEvents: async (entityId?: string): Promise<AuditEvent[]> => {
     const query = entityId ? `?entity_id=${encodeURIComponent(entityId)}` : '';
-    return request<AuditEvent[]>(`/api/audit${query}`);
+    const items = await request<(AuditEvent & { event_id?: string; action?: string; actor_name?: string; created_at?: string })[]>(`/api/audit${query}`);
+    return items.map(item => ({ ...item, id: item.event_id || item.id, event_type: item.action || item.event_type, actor_id: item.actor_name || item.actor_id, timestamp: item.created_at || item.timestamp }));
   },
 };
