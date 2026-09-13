@@ -54,7 +54,7 @@ def normalize_deadline(raw_text: str | None, base_dt: datetime | None = None) ->
         return f"{text}T17:00:00+05:30"
 
     # Base reference date (default to fixed reference or now in IST)
-    ref = base_dt or datetime(2026, 9, 14, 9, 0, 0, tzinfo=IST)
+    ref = base_dt or datetime.now(IST)
     lower = text.lower()
 
     # Time extraction (e.g. "5 pm", "10 am", "17:00")
@@ -101,8 +101,5 @@ def normalize_deadline(raw_text: str | None, base_dt: datetime | None = None) ->
                 target_date.year, target_date.month, target_date.day, hour, minute, 0, tzinfo=IST
             ).isoformat()
 
-    # Fallback: preserve ISO format 3 days ahead at 17:00 IST
-    fallback_date = ref.date() + timedelta(days=3)
-    return datetime(
-        fallback_date.year, fallback_date.month, fallback_date.day, hour, minute, 0, tzinfo=IST
-    ).isoformat()
+    # Unsupported dates require parent clarification; never invent a deadline.
+    return None

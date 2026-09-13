@@ -37,10 +37,13 @@ class ConnectionWrapper:
         return self
 
     def __exit__(self, exc_type: Any, exc_val: Any, exc_tb: Any) -> None:
-        if exc_type:
-            self.rollback()
-        else:
-            self.commit()
+        try:
+            if exc_type:
+                self.rollback()
+            else:
+                self.commit()
+        finally:
+            self.close()
 
 
 class CursorWrapper:

@@ -34,7 +34,7 @@ class SecurityMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next: Callable[[Request], Any]) -> Response:
         # Skip health, readiness, and docs endpoints
         path = request.url.path
-        if path in ("/api/health", "/api/ready", "/docs", "/openapi.json", "/redoc"):
+        if not path.startswith("/api/") or path in ("/api/health", "/api/ready"):
             return await call_next(request)  # type: ignore[no-any-return]
 
         settings = get_settings()
@@ -73,6 +73,14 @@ def create_app(
     target_mode = extraction_mode or settings.extraction_mode
 
     is_postgres = target_db.startswith("postgresql://") or target_db.startswith("postgres://")
+    if settings.is_production:
+        origins = settings.parse_cors_origins()
+        if not origins or any(not origin.startswith("https://") for origin in origins):
+            raise ValueError("Production requires explicit HTTPS origins")
+        if db_url is None and not is_postgres:
+            raise ValueError("Production requires a persistent PostgreSQL database")
+        if target_mode not in {"live", "deterministic"}:
+            raise ValueError("Unsupported production extraction mode")
 
     app = FastAPI(
         title="Schoolbag",
@@ -161,7 +169,8 @@ def create_app(
                 },
                 "strands": {
                     "engine": "strands",
-                    "status": "operational",
+                    "status": "configured" if app.state.strands_engine._api_key else "unavailable",
+                    "live_verified": False,
                     "advisory_only": True,
                 },
                 "database": {
@@ -177,16 +186,16 @@ def create_app(
         try:
             with app.state.store._get_connection() as conn:
                 cur = conn.cursor()
-                cur.execute("SELECT 1")
+                cur.execute("SELECT 1 AS ready")
                 row = cur.fetchone()
-                if row and row[0] == 1:
+                if row and (row["ready"] if isinstance(row, dict) else row[0]) == 1:
                     return JSONResponse(
                         status_code=200, content={"status": "ready", "database": "connected"}
                     )
-        except Exception as e:
+        except Exception:
             return JSONResponse(
                 status_code=503,
-                content={"status": "not_ready", "error": str(e)},
+                content={"status": "not_ready", "error": "Database readiness check failed"},
             )
         return JSONResponse(status_code=503, content={"status": "not_ready"})
 
@@ -218,7 +227,9 @@ def create_app(
                         "message": f"Endpoint '/{full_path}' not found.",
                     },
                 )
-            target = static_dir / full_path
+            target = (static_dir / full_path).resolve()
+            if not target.is_relative_to(static_dir):
+                return JSONResponse(status_code=404, content={"error": "NOT_FOUND"})
             if target.exists() and target.is_file():
                 return FileResponse(str(target))
             return FileResponse(str(index_file))

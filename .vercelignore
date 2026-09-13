@@ -1,0 +1,16 @@
+.git
+.env*
+.venv
+services/school_service/.venv
+apps/web/node_modules
+node_modules
+test-results
+output
+.playwright-cli
+.pytest_cache
+.mypy_cache
+.ruff_cache
+*.db
+*.pyc
+__pycache__
+video

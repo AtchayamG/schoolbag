@@ -74,10 +74,12 @@ class CanaryClient:
 
             self._client: Any = TestClient(app)
         else:
-            self._client = httpx.Client(base_url=self.base_url, timeout=30.0)
+            self._client = httpx.Client(base_url=self.base_url, timeout=65.0)
 
     def _headers(self) -> dict[str, str]:
         headers: dict[str, str] = {"Content-Type": "application/json"}
+        if self.base_url:
+            headers["Origin"] = self.base_url
         if self.session_cookie:
             headers["Cookie"] = f"schoolbag_session={self.session_cookie}"
         return headers
@@ -115,7 +117,12 @@ def run_canary(live: bool = False, base_url: str | None = None) -> int:
         print(f"  Target Server: {base_url}")
     print("=" * 80)
 
-    if live:
+    if base_url:
+        _log(
+            "PRE-CHECK: Remote mode",
+            detail="Provider credentials and billing stay on the server",
+        )
+    elif live:
         api_key = os.environ.get("GROQ_API_KEY", "").strip()
         if not api_key:
             _log(
@@ -418,7 +425,7 @@ def run_canary(live: bool = False, base_url: str | None = None) -> int:
     print("=" * 80)
     print("  ALL 11 CANARY STAGES PASSED SUCCESSFULLY!")
     print(
-        "  Production invariants verified: zero personal spend, human gate, calendar export."
+        "  Verified: workflow responses, human gate, calendar export. Billing is checked separately."
     )
     print("=" * 80)
     return 0

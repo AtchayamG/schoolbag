@@ -53,7 +53,7 @@ class DeterministicActionExtractor:
         if fee_match and has_fee_words:
             raw_amt = fee_match.group(1) or fee_match.group(2)
             amount = float(raw_amt) if raw_amt else None
-            deadline_text = raw_due_text or "Friday 5 PM"
+            deadline_text = raw_due_text
             extracted.append(
                 {
                     "action_id": f"act_{uuid.uuid4().hex[:12]}",
@@ -84,7 +84,7 @@ class DeterministicActionExtractor:
             ]
         )
         if has_consent:
-            deadline_text = raw_due_text or "Thursday 4 PM"
+            deadline_text = raw_due_text
             extracted.append(
                 {
                     "action_id": f"act_{uuid.uuid4().hex[:12]}",
@@ -119,7 +119,7 @@ class DeterministicActionExtractor:
             ]
         )
         if has_materials:
-            deadline_text = raw_due_text or "Tomorrow 9 AM"
+            deadline_text = raw_due_text
             extracted.append(
                 {
                     "action_id": f"act_{uuid.uuid4().hex[:12]}",
@@ -144,7 +144,7 @@ class DeterministicActionExtractor:
             for w in ["exam", "test", "syllabus", "revision", "hall ticket", "assessment"]
         )
         if has_exam and not any(a["action_type"] == ActionType.EXAM_PREP.value for a in extracted):
-            deadline_text = raw_due_text or "Next Monday 9 AM"
+            deadline_text = raw_due_text
             extracted.append(
                 {
                     "action_id": f"act_{uuid.uuid4().hex[:12]}",
@@ -162,7 +162,7 @@ class DeterministicActionExtractor:
 
         # 5. Fallback if fewer than 2 actions extracted: provide structured general action
         if len(extracted) < 2:
-            deadline_text = raw_due_text or "Friday 5 PM"
+            deadline_text = raw_due_text
             extracted.append(
                 {
                     "action_id": f"act_{uuid.uuid4().hex[:12]}",
