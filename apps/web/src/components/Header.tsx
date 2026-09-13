@@ -82,7 +82,7 @@ export const Header: React.FC<HeaderProps> = ({
 
         <div style={{ display: 'flex', gap: '1rem', marginTop: '0.5rem', flexWrap: 'wrap', fontSize: '0.75rem', color: '#94a3b8' }}>
           <span>&bull; Personal Spend: <strong>₹0.00 / $0.00</strong> (Deterministic Synthetic Engine + Free Model Adapter)</span>
-          <span>&bull; Privacy: <strong>Minimal Identifiers</strong> (Alias only; zero DOB, medical, or student ID stored)</span>
+          <span>&bull; Public demo: <strong>Synthetic notices only</strong>. Do not enter real child or contact details.</span>
           <span>&bull; Safety: <strong>Never autosigns consent or spends money</strong></span>
         </div>
       </div>

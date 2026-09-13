@@ -191,7 +191,7 @@ export const ActionCard: React.FC<ActionCardProps> = ({ action, onActionUpdated 
     setIsLoading(true);
     setErrorBanner(null);
     try {
-      await api.updateActionDeadline(action.id, newDeadline.trim());
+      await api.updateActionDeadline(action.id, newDeadline.trim(), action.version);
       setIsEditingDeadline(false);
       onActionUpdated();
     } catch (err: unknown) {

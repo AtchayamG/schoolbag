@@ -73,7 +73,7 @@ function normalizeAction(item: Record<string, unknown>): SchoolAction {
     amount: (item.amount ?? item.amount_inr ?? null) as number | null,
     amount_inr: (item.amount_inr ?? item.amount ?? null) as number | null,
     currency: (item.currency || 'INR') as string,
-    status: (item.status || 'draft') as any,
+    status: (item.status === 'extracted' ? 'draft' : item.status || 'draft') as any,
     required_role: (item.required_role || (item.approval_required ? 'parent' : 'system')) as any,
     approved_by: item.approved_by as any,
     approved_at: item.approved_at as string | null | undefined,
@@ -239,10 +239,10 @@ export const api = {
     return normalizeAction(item);
   },
 
-  updateActionDeadline: async (id: string, deadline: string): Promise<SchoolAction> => {
+  updateActionDeadline: async (id: string, deadline: string, expectedVersion: number): Promise<SchoolAction> => {
     const item = await request<Record<string, unknown>>(`/api/actions/${id}/deadline`, {
       method: 'PATCH',
-      body: JSON.stringify({ raw_deadline: deadline, expected_version: 1 }),
+      body: JSON.stringify({ raw_deadline: deadline, expected_version: expectedVersion }),
     });
     return normalizeAction(item);
   },

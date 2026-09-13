@@ -32,7 +32,7 @@ describe('Schoolbag Frontend Core Workflow & Guardrails', () => {
     );
 
     expect(screen.getByText(/Evaluator Quick-Start & Guardrail Checklist/i)).toBeInTheDocument();
-    expect(screen.getByText(/Minimal Identifiers/i)).toBeInTheDocument();
+    expect(screen.getByText(/Synthetic notices only/i)).toBeInTheDocument();
     expect(screen.getByText(/Capacity:/i)).toHaveTextContent('3 / 50 notices');
   });
 
@@ -407,4 +407,3 @@ describe('Schoolbag Frontend Core Workflow & Guardrails', () => {
     expect(screen.getByText('Pay Sports Transport Fee')).toBeInTheDocument();
   });
 });
-

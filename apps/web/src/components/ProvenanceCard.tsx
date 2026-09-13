@@ -15,13 +15,14 @@ export const ProvenanceCard: React.FC<ProvenanceCardProps> = ({ health }) => {
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '0.75rem', fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
         <div>
           <div style={{ fontWeight: 600, color: 'var(--text-primary)' }}>Extraction Engine</div>
-          <div>Mode: <code>{health?.extractor.mode || 'deterministic'}</code> (Rule-based)</div>
+          <div>Notice extraction: <code>Rule-based</code></div>
           <div>Advisory Only: <code>true</code> (No autosigning)</div>
         </div>
 
         <div>
           <div style={{ fontWeight: 600, color: 'var(--text-primary)' }}>Strands Agent Engine</div>
           <div>Seam: <code>strands-agents</code> (Advisory)</div>
+          <div>Service status: {health?.strands?.status || 'Connecting'}</div>
           <div>Bounded Tool: <code>get_school_notice_context</code></div>
           <div>Admission: Atomic lock, 6/60s rate limit</div>
         </div>
@@ -35,7 +36,7 @@ export const ProvenanceCard: React.FC<ProvenanceCardProps> = ({ health }) => {
         <div>
           <div style={{ fontWeight: 600, color: 'var(--text-primary)' }}>Child Privacy Protection</div>
           <div>Identifiers: <strong>Alias Only</strong> (e.g. Kavya, Arun)</div>
-          <div>Excluded: No DOB, No Medical, No Student IDs</div>
+          <div>Use synthetic notices only. Do not paste DOB, medical details, or student IDs.</div>
         </div>
 
         <div>
