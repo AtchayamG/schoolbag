@@ -113,7 +113,7 @@ export const Header: React.FC<HeaderProps> = ({
           {/* Database Engine */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.8rem', color: 'var(--text-secondary)', background: 'var(--bg-elevated)', padding: '0.35rem 0.65rem', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-subtle)' }}>
             <Database size={14} color="var(--color-teal)" />
-            <span>{health?.database.engine === 'postgres' ? 'PostgreSQL 16' : 'SQLite WAL'}</span>
+            <span>{health?.database.engine === 'postgres' ? 'PostgreSQL' : 'SQLite WAL'}</span>
           </div>
 
           {/* Notice Capacity */}

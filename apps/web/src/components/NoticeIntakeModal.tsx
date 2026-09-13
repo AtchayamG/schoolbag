@@ -18,6 +18,7 @@ export const NoticeIntakeModal: React.FC<NoticeIntakeModalProps> = ({
 }) => {
   const [title, setTitle] = useState('');
   const [rawContent, setRawContent] = useState('');
+  const [rawDueText, setRawDueText] = useState('');
   const [sourceType, setSourceType] = useState<SourceType>('whatsapp');
   const [childAlias, setChildAlias] = useState('Kavya');
   const [className, setClassName] = useState('Class 5-B');
@@ -31,6 +32,7 @@ export const NoticeIntakeModal: React.FC<NoticeIntakeModalProps> = ({
   const handleApplyPreset = (preset: SchoolPreset) => {
     setTitle(preset.title);
     setRawContent(preset.body);
+    setRawDueText(preset.due_date || '');
     setSourceType(preset.source_type);
     setChildAlias(preset.child_alias);
     setClassName(preset.class_name);
@@ -54,6 +56,7 @@ export const NoticeIntakeModal: React.FC<NoticeIntakeModalProps> = ({
         {
           title: title.trim(),
           raw_content: rawContent.trim(),
+          raw_due_text: rawDueText.trim() || null,
           source_type: sourceType,
           child_alias: childAlias.trim() || null,
           class_name: className.trim() || null,
@@ -141,6 +144,8 @@ export const NoticeIntakeModal: React.FC<NoticeIntakeModalProps> = ({
 
         {/* Intake Form */}
         <form onSubmit={handleSubmit}>
+          <label htmlFor="notice-deadline">Deadline as written (optional)</label>
+          <input id="notice-deadline" value={rawDueText} onChange={e => setRawDueText(e.target.value)} placeholder="For example: Friday 5 PM" />
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginBottom: '0.75rem' }}>
             <div>
               <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '0.25rem' }}>

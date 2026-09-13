@@ -27,6 +27,10 @@ class ApiError extends Error {
 
 export { ApiError };
 
+function normalizeWorkspace(item: Workspace & { workspace_id?: string }): Workspace {
+  return { ...item, id: item.workspace_id || item.id, name: item.name || 'Family workspace' };
+}
+
 // Normalization helpers ensuring both camel/snake case and legacy/backend shapes align seamlessly
 function normalizeNotice(item: Record<string, unknown>): Notice {
   return {
@@ -121,15 +125,18 @@ export const api = {
   getHealth: (): Promise<HealthResponse> => request<HealthResponse>('/api/health'),
 
   // Workspace
-  getCurrentWorkspace: (): Promise<Workspace> => request<Workspace>('/api/workspaces/current'),
+  getCurrentWorkspace: async (): Promise<Workspace> => normalizeWorkspace(await request<Workspace>('/api/workspaces/current')),
   createWorkspace: (name?: string): Promise<Workspace> =>
     request<Workspace>('/api/workspaces', {
       method: 'POST',
       body: JSON.stringify({ name }),
-    }),
+    }).then(normalizeWorkspace),
 
   // Presets
-  getPresets: (): Promise<SchoolPreset[]> => request<SchoolPreset[]>('/api/presets'),
+  getPresets: async (): Promise<SchoolPreset[]> => {
+    const items = await request<(SchoolPreset & { preset_id?: string; raw_body?: string; raw_due_text?: string })[]>('/api/presets');
+    return items.map(item => ({ ...item, id: item.preset_id || item.id, body: item.raw_body || item.body, due_date: item.raw_due_text || item.due_date }));
+  },
 
   // Notices
   getNotices: async (childAlias?: string): Promise<Notice[]> => {
@@ -142,6 +149,7 @@ export const api = {
     noticeData: {
       title: string;
       raw_content: string;
+      raw_due_text?: string | null;
       source_type: string;
       class_name?: string | null;
       child_alias?: string | null;
