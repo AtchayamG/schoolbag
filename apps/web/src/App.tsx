@@ -87,8 +87,8 @@ export const App: React.FC = () => {
   }, [initWorkspace]);
 
   useEffect(() => {
-    loadData();
-  }, [loadData]);
+    if (workspace) loadData();
+  }, [loadData, workspace]);
 
   return (
     <div className="app-container">
