@@ -60,6 +60,9 @@ Thumbs.db
 !.env.example
 .vercel/
 video/frames/
+video/pipeline/capture/
+video/pipeline/encoded/
+video/pipeline/voice/
 
 .vercel
 .env*
