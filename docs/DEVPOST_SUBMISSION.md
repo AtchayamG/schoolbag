@@ -11,6 +11,20 @@ Turn chaotic school WhatsApp forwards and circulars into clear family actions, c
 ## 1. Track
 **Everyday Agents** (Agents for Humans Hackathon)
 
+### Submission status (verified 2026-09-14)
+
+Submitted. Submission ID `1181709`. Public project page:
+https://devpost.com/software/schoolbag-human-approved-school-assistant
+Verified by authenticated Devpost readback showing the `SUBMITTED` badge. See
+`00_PROGRAM_CONTROL/SUBMISSION_RECEIPT_2026-09-14.md` for the full receipt,
+including why no `submitted_at` timestamp is claimed (Devpost does not expose one).
+
+Accuracy note for anyone reusing the copy below: Schoolbag ingests school notice
+text that is **pasted or typed in**. It does not connect to WhatsApp, email, PDFs
+or OCR and does not read any inbox. Section 3 below says "Ingests messy school
+WhatsApp messages" as shorthand for that pasted content — the submitted testing
+instructions state the limitation explicitly, and public-facing copy should too.
+
 ---
 
 ## 2. Inspiration

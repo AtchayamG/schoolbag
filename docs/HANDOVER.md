@@ -82,3 +82,69 @@ Then navigate to `http://localhost:8000` to review:
 - **Demo Video Script**: `docs/DEMO_VIDEO_SCRIPT.md` (180-second timed production script with captions and cues).
 - **Devpost Submission**: `docs/DEVPOST_SUBMISSION.md` (Everyday Agents track submission copy).
 - **Milestone Acceptance Records**: `docs/SB-001_ACCEPTANCE.md` through `docs/SB-005_ACCEPTANCE.md`.
+-
+## Claude Final Submission Handoff (2026-09-14)
+- Devpost draft `1181709`, slug `schoolbag-human-approved-school-assistant`; track **Everyday Agents**; Individual; India.
+- Repo https://github.com/AtchayamG/schoolbag | live https://schoolbag-afh.vercel.app | video https://youtu.be/xxQ9WQwkDlk
+- Architecture: `architecture/schoolbag_architecture_readable.png` (or PDF only if explicitly required). Thumbnail is already uploaded; do not repeat.
+- AWS Builder ID: `atchayamganesh@gmail.com`. Testing: start family workspace, use synthetic presets, review actions, request Strands advice, approve, download calendar, inspect board.
+- Truth limits: synthetic aliases/roles, paste text only, no direct WhatsApp/email/PDF/OCR ingestion, payment/signing/automatic messaging, or AgentCore claim. Submit only after authenticated Devpost readback shows Submitted and timestamp.
+
+---
+
+## Devpost submission completed and verified (2026-09-14)
+
+TASK: Final Devpost submission
+WORKER: Claude, senior release and Devpost submission engineer
+STATUS: COMPLETED — verified by authenticated Devpost readback
+
+**Result:** Schoolbag is **Submitted** to the Agents for Humans Hackathon.
+Submission ID `1181709`, track **Everyday Agents**, public project page
+https://devpost.com/software/schoolbag-human-approved-school-assistant
+
+Verified from the authenticated page
+`/submit-to/30317-agents-for-humans-hackathon/manage/submissions`, which shows the
+literal `SUBMITTED` badge; the project page shows `SUBMITTED TO — Agents for
+Humans Hackathon`; the wizard reads 4/5 steps done with Manage team, Project
+overview, Project details and Additional info all complete.
+
+**No `submitted_at` is claimed.** Devpost exposes no per-submission submitted_at
+in its participant UI — only the deadline and a project "updated" date. Observed
+submission time from the session was ~2026-09-14T10:20–10:38+05:30.
+
+**Fields saved:** Submitter Type `Individual`; Country `India`; Track
+`Everyday Agents`; repo `https://github.com/AtchayamG/schoolbag`; AWS Builder ID
+`atchayamganesh@gmail.com`; live demo `https://schoolbag-afh.vercel.app`;
+1122-character testing instructions; video `https://youtu.be/xxQ9WQwkDlk`
+(re-entered on the Project details step, where the field rendered empty and would
+otherwise have been cleared on save). Organization name and bonus blog URL left
+blank deliberately.
+
+**Architecture diagram:** the required upload was empty (`File can't be blank`).
+Uploaded the local working-tree `architecture/schoolbag_architecture_readable.png`
+(310,972 bytes) and also added it to the public image gallery with a caption.
+
+KNOWN_ISSUE / ACTION FOR OWNER: the repo copy of that diagram is **stale** —
+`architecture/schoolbag_architecture_readable.png` and
+`architecture/schoolbag_architecture.pdf` are both modified-and-uncommitted
+locally. The submitted diagram is the correct newer one, but **the public repo
+still shows the old diagram** until these files are committed and pushed. That
+push was not performed here (public repository change, not authorised in this task).
+
+TRUTH BOUNDARIES: the submitted testing instructions state explicitly that school
+notices are **pasted or typed in**, that Schoolbag does not connect to WhatsApp,
+email, PDFs or OCR and reads no inbox, and that the WhatsApp family draft is
+copied to the parent's clipboard for them to send — nothing is sent, paid, signed
+or ordered automatically. Approval is refused for non-parent actors with HTTP 403
+`HUMAN_APPROVAL_REQUIRED`. No AgentCore deployment and no verified real-world
+parent, child or school identities are claimed; all presets are synthetic.
+
+A wording caveat was added to `docs/DEVPOST_SUBMISSION.md`: its section 3 phrase
+"Ingests messy school WhatsApp messages" is shorthand for pasted content and
+should not be reused as-is in public copy without the paste-only qualifier.
+
+SPEND: ₹0.00 / $0.00.
+
+NEXT_SAFE_ACTION: optionally commit and push the updated `architecture/` files so
+the public repo matches the submitted diagram. Editing is allowed until the
+deadline (Sep 15, 2026 @ 5:30am GMT+5:30); after it, do not edit anything.
